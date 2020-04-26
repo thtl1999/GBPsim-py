@@ -1,0 +1,21 @@
+{"frames": {
+
+"liveBG_normal.png":
+{
+	"frame": {"x":0,"y":0,"w":2048,"h":1024},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":2048,"h":1024},
+	"sourceSize": {"w":2048,"h":1024},
+	"anchor": {"x":0.5,"y":0.375}
+}},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "bgs.png",
+	"format": "RGBA8888",
+	"size": {"w":2048,"h":1024},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:7d083e0f435f99ee55f08256ed90dad6:16066cbc6d08585eeb43597c30df338b:8d66618cd132f1e192b33c10ea222e7a$"
+}
+}
