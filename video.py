@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw
 import numpy as np
 import cv2
 import json
+import math
 
 BPMS = [{"bpm":85,"start":0,"end":14.117647058823529},{"bpm":186,"start":14.117647058823529,"end":103.872}]
 SONG_ID = '128'
@@ -27,6 +28,8 @@ NOTE_SIZE = 1
 NOTE_WIDTH = 304
 note_pos = list()
 note_len = None
+lnl = Image.open('assets/longNoteLine.png')
+lnl_scale = 0.75
 
 
 note_skin_id = '0'
@@ -36,12 +39,22 @@ video = cv2.VideoWriter('myvideo.mp4', FOURCC, FPS, (WIDTH,HEIGHT))
 images = dict()
 
 def pil2cv(pil):
-    return np.array(pil)[:, :, ::-1].copy()
+    numpy_image = np.array(pil)
+    if pil.mode == 'RGB':
+        return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
+    elif pil.mode == 'RGBA':
+        return cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGRA)
+    # return np.array(pil)[:, :, ::-1].copy()
+
+def cv2pil(cvimg):
+    if cvimg.shape[2] == 3:
+        return Image.fromarray(cv2.cvtColor(cvimg, cv2.COLOR_BGR2RGB))
+    if cvimg.shape[2] == 4:
+        return Image.fromarray(cv2.cvtColor(cvimg, cv2.COLOR_BGRA2RGBA))
 
 def write_frame(img):
     frame = pil2cv(img)
     video.write(frame)
-    cv2.destroyAllWindows()
 
 def add_images(file_name):
     json_dict = json.load(open('assets/' + file_name + '.json'))
@@ -59,6 +72,10 @@ def add_images(file_name):
 def paste_center(base, x, y, img):
     w, h = img.size
     base.paste(img, (int(x - w/2), int(y - h/2)), img)
+
+def paste_center_no_mask(base, x, y, img):
+    w, h = img.size
+    base.paste(img, (int(x - w / 2), int(y - h / 2)))
 
 def paste_abs(base, x, y, img):
     base.paste(img, (x, y), img)
@@ -99,7 +116,11 @@ def cal_frames():
 
 def get_note_sprite(note):
     type_dict = {
-        'Single' : 'note_normal_'
+        'Single' : 'note_normal_',
+        'Long' : 'note_long_',
+        'SingleOff' : 'note_normal_gray_',
+        'Skill' : 'note_skill_',
+        'Flick' : 'note_flick_'
     }
 
     type = note['type']
@@ -134,7 +155,7 @@ def get_note_pos(note):
         s = note_pos[note['frame']]['r']
         return x, y, s
 
-def make_line(canvas, note):
+def make_line_old(canvas, note):
     tx, ty, bx, by, ts, bs = get_note_pos(note)
 
     trwh = NOTE_WIDTH*NOTE_SIZE*ts/2     #top real width half
@@ -148,6 +169,99 @@ def make_line(canvas, note):
 
     draw.polygon([(tx-trwh, ty), (bx-brwh + prog_width, by), (bx+brwh + prog_width, by), (tx+trwh, ty)], fill=(255, 100, 255, 100))
     paste_abs(canvas, 0, 0, overlay)
+
+def draw_gradient(draw, pos, prog_width, c1, c2, c3):
+    tx, ty, bx, by, ts, bs = pos
+    bx = bx + prog_width
+
+    trwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * ts / 2  # top real width half
+    brwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * bs / 2  # botoom real width half
+
+    for y in range(ty, by):
+        r = 1 - (by-y)/(by-ty)
+        x1 = int((1-r)*(tx - trwh) + r*(bx - brwh))
+        x2 = int((1-r)*(tx + trwh) + r*(bx + brwh))
+
+        color = list()
+        r = math.sin(r * math.pi)
+        for i in range(4):
+            color.append(int((1-r)*c1[i] + r*c2[i]))
+        color = tuple(color)
+
+        draw.line([(x1,y),(x2,y)], color)
+
+    draw.line([(tx - trwh, ty), (bx - brwh, by)], c3, width=NOTE_SIZE * 3)
+    draw.line([(tx + trwh, ty), (bx + brwh, by)], c3, width=NOTE_SIZE * 3)
+
+
+def make_line(canvas, note):
+    tx, ty, bx, by, ts, bs = get_note_pos(note)
+
+
+
+    prog = (note['frame'][2])/(note['time'][1]*FPS - note['time'][0]*FPS)
+    prog_width = (BX[note['lane'][1]] - BX[note['lane'][0]]) * prog
+
+    overlay = Image.new('RGBA', canvas.size, (0,0,0,0))
+    draw = ImageDraw.Draw(overlay)
+
+    edge_color = (75,226,111,151)
+    center_color = (76,228,112,77)
+    line_color = (74, 227,112,192)
+
+    draw_gradient(draw,get_note_pos(note), prog_width, edge_color, center_color, line_color)
+    paste_abs(canvas, 0, 0, overlay)
+
+def make_line_perspective(canvas, note):
+    tx, ty, bx, by, ts, bs = get_note_pos(note)
+
+    if ty == by:
+        return canvas
+
+    background = Image.new('RGBA', (WIDTH, HEIGHT))
+
+
+
+    rtwh = lnl.width*lnl_scale*NOTE_SIZE*ts/2   # real top width half
+    rbwh = lnl.width*lnl_scale*NOTE_SIZE*bs/2   # real bottom width half
+
+
+    # paste_center_no_mask(background, WIDTH/2, HEIGHT/2, lnl)
+    background.paste(lnl, (0,0))
+
+    cvimg = pil2cv(background)
+
+    nw = [0,0]
+    ne = [lnl.width,0]
+    sw = [0,lnl.height]
+    se = [lnl.width,lnl.height]
+
+    # nw, sw, ne, se
+    origin = np.float32([nw, sw, se, ne])
+
+    nw = [tx - rtwh, ty]
+    ne = [tx + rtwh, ty]
+    sw = [bx - rbwh, by]
+    se = [bx + rbwh, by]
+
+    # nw, sw, ne, se
+    target = np.float32([nw, sw, se, ne])
+    M = cv2.getPerspectiveTransform(origin, target)
+
+
+    dst = cv2.warpPerspective(cvimg, M, (WIDTH, HEIGHT))
+
+    newimg = cv2pil(dst)
+    paste_abs(canvas,0,0,newimg)
+
+
+    # cv2.imshow('img',cvimg)
+    # cv2.waitKey(0)
+
+    # lnl = lnl.transform((WIDTH, HEIGHT), Image.PERSPECTIVE, (1,0.3,-700,0,1,-700))
+    # lnl.show()
+
+    return canvas
 
 
 note_len = cal_frames()
@@ -217,10 +331,10 @@ while frame*t < SONG_LEN:
 
 
         # simultaneous note
-        if note['type'] == 'Sim':
+        elif note['type'] == 'Sim':
             pass
 
-        elif note['type'] == 'Single':
+        else:
             cur_frame = note['frame']
 
             # note = img_resize(images['note_normal_' + str(obj['lane'] - 1) + '.png'],NOTE_SIZE*note_pos[cur_frame]['r'])
@@ -232,12 +346,20 @@ while frame*t < SONG_LEN:
     write_frame(canvas)
     frame = frame + 1
 
-    if frame > 1200:
-        break
+    # if frame > 1200:
+    #     break
 
 
-# make_line(bg, note)
+# note = {
+#     'type':'Bar',
+#     'frame':[54,15,0],
+#     'lane':[1,6],
+#     'time':[1,2]
+# }
 #
+# make_line(bg, note)
+
 # bg.show()
+
 
 video.release()
