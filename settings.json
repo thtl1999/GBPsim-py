@@ -1,0 +1,29 @@
+{
+  "WIDTH": 1920,
+  "HEIGHT": 1080,
+  "FPS": 60,
+  "LANE_SCALE": 1.4,
+  "BOTTOM_DISTANCE": 154,
+  "TOP_DISTANCE": 2.28571,
+  "BOTTOM_SCALE": 0.8,
+  "SKIP_NOTE": 5,
+  "NOTE_SPEED": 0.002,
+  "NOTE_SIZE": 1,
+  "NOTE_WIDTH": 304,
+  "BG_LINE_HEIGHT": 610,
+  "LNL_SCALE": 0.75,
+  "FLICK_FPS": 20,
+  "NOTE_SKIN_ID": "0",
+  "LANE_SKIN_ID": "0",
+
+  "THREAD": 0,
+
+
+  "DIFFICULTY" : {
+    "0": "easy",
+    "1": "normal",
+    "2": "hard",
+    "3": "expert",
+    "4": "special"
+  }
+}
