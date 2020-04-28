@@ -68,11 +68,11 @@ class VideoPrefetch:
 
         while self.C['note speed'] * frame**3 < height:
             position = dict()
-            position['y'] = int(C['note speed'] * frame**3 + self.C['top'])
+            position['y'] = round(C['note speed'] * frame**3 + self.C['top'])
             position['r'] = (position['y'] - C['top']) / height
             position['x'] = dict()
             for x in range(1,8):
-                position['x'][x] = int(TX[x] + (BX[x] - TX[x])*position['r'])
+                position['x'][x] = round(TX[x] + (BX[x] - TX[x])*position['r'])
             note_pos.append(position)
 
             frame = frame + 1
@@ -82,7 +82,7 @@ class VideoPrefetch:
         last['r'] = 1
         last['x'] = dict()
         for x in range(1,8):
-            last['x'][x] = int(BX[x])
+            last['x'][x] = round(BX[x])
 
         note_pos.append(last)
 
@@ -95,12 +95,16 @@ class VideoPrefetch:
         }
 
         if note['type'] == 'Bar':
-            top_frame_difference = int((note['time'][1] - note['time'][0])*self.C['fps'])
+            top_frame_difference = self.precise_cal(note['time'][1]) - self.precise_cal(note['time'][0])
             note_info['frame'] = [0, -top_frame_difference]
         else:
             note_info['frame'] = 0
 
         frame.append(note_info)
+
+    def precise_cal(self, note_time):
+        return int(note_time * self.C['fps'] - self.C['position length'])
+
 
 
     def add_moved_notes(self, frame, last_frame):
@@ -265,7 +269,7 @@ class VideoFrameMaker:
 
         # cannot draw transparent color on RGB image
         overlay = Image.new('RGBA', bg.size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(bg)
+        draw = ImageDraw.Draw(overlay)
 
         self.draw_gradient(draw, note, distance, self.C['edge color'], self.C['center color'], self.C['line color'])
         self.paste_abs(bg, 0, 0, overlay)
@@ -278,6 +282,7 @@ class VideoFrameMaker:
         lnl_scale = self.C['lnl scale']
         NOTE_WIDTH = self.C['note width']
         NOTE_SIZE = self.C['note size']
+        line_width = round(NOTE_SIZE * 3)
 
         trwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * ts / 2  # top real width half
         brwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * bs / 2  # bottom real width half
@@ -295,8 +300,8 @@ class VideoFrameMaker:
 
             draw.line([(x1, y), (x2, y)], color)
 
-        draw.line([(tx - trwh, ty), (bx - brwh, by)], c3, width=NOTE_SIZE * 3)
-        draw.line([(tx + trwh, ty), (bx + brwh, by)], c3, width=NOTE_SIZE * 3)
+        draw.line([(tx - trwh, ty), (bx - brwh, by)], c3, width=line_width)
+        draw.line([(tx + trwh, ty), (bx + brwh, by)], c3, width=line_width)
         return
 
     def draw_sim(self, bg, note):
@@ -308,13 +313,15 @@ class VideoFrameMaker:
         note_sprite = self.get_note_sprite(note)
         x, y, s = self.get_note_pos(note)
         self.paste_center(bg, x, y, note_sprite)
+        if note['type'] == 'Flick':
+            self.draw_flick_top(bg, note)
 
     def draw_flick_top(self, bg, note):
         x, y, s = self.get_note_pos(note)
-        flickFPS = self.C['flick fps']
-        NOTE_WIDTH = self.C['note width']
-        flicky = s * NOTE_WIDTH * 0.1 + (note['frame'] % flickFPS) * s * NOTE_WIDTH * 0.3 / flickFPS
-        flick_top = self.img_resize(self.images['note_flick_top.png'], s)
+        position = note['frame'] % self.C['flick fps']
+        note_width = s * self.C['note width'] * self.C['note size']
+        flicky = note_width * 0.1 + position * note_width * 0.3 / self.C['flick fps']
+        flick_top = self.img_resize(self.images['note_flick_top.png'], s * self.C['note size'])
         self.paste_center(bg, x, y - flicky, flick_top)
 
     def draw_bpm(self, bg, bpms):
@@ -338,7 +345,7 @@ class VideoFrameMaker:
         else:
             img = self.images[type_dict[type] + str(lane - 1) + '.png']
 
-        return self.img_resize(img, self.P[frame]['r'])
+        return self.img_resize(img, self.P[frame]['r']*self.C['note size'])
 
     def img_resize(self, img, f):
         w, h = img.size
@@ -350,8 +357,8 @@ class VideoFrameMaker:
     def get_sim_sprite(self, note):
         img = self.images['simultaneous_line.png']
         x1, x2, y, s = self.get_note_pos(note)
-        sim_width = int(abs(x2-x1))
-        sim_height = int(img.height * self.C['note size'] * s)
+        sim_width = abs(x2-x1)
+        sim_height = round(img.height * self.C['note size'] * s)
 
         if sim_width == 0 or sim_height == 0:
             return self.empty_image.copy()
