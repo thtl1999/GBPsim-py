@@ -5,52 +5,14 @@ import cv2
 import json
 import math
 import copy
+import multiprocessing
 
-BPMS = [{"bpm":85,"start":0,"end":14.117647058823529},{"bpm":186,"start":14.117647058823529,"end":103.872}]
-SONG_ID = '128'
-SONG_LEN = 103.872
-DIFFICULTY = 'expert'
-WIDTH = 1920
-HEIGHT = 1080
-FOURCC = cv2.VideoWriter_fourcc(*'mp4v')
-FPS = 60
-LANE_SCALE = 1.4
-LANE_SPACE_BOTTOM = 154*LANE_SCALE      #game_play_line.png bottom space
-LANE_SCALE_TOP = 16/7*LANE_SCALE
-BOTTOM = int(HEIGHT/5*4)
-TOP = int(BOTTOM - 610 * LANE_SCALE)    #int(BOTTOM - bg_line_rhythm.height)
-BX = dict()
-TX = dict()
-for x in range(1,8):
-    BX[x] = WIDTH/2 - 4*LANE_SPACE_BOTTOM + x*LANE_SPACE_BOTTOM
-    TX[x] = WIDTH/2 - 4*LANE_SCALE_TOP + x*LANE_SCALE_TOP
-SKIP_NOTE = 5
-NOTE_SPEED = 0.002
-NOTE_SIZE = 1
-NOTE_WIDTH = 304
-note_pos = list()
-note_len = None
-lnl = Image.open('assets/longNoteLine.png')
-lnl_scale = 0.75
-
-flickFPS = int(FPS/3)
-
-
-note_skin_id = '0'
-lane_skin_id = '0'
-
-video = cv2.VideoWriter('myvideo.mp4', FOURCC, FPS, (WIDTH,HEIGHT))
-images = dict()
 
 class VideoPrefetch:
     def __init__(self, settings, metadata, difficulty, music_id):
-
         self.C = self.define_constant(settings, metadata, difficulty, music_id)
-
         self.P , self.C['position length'] = self.cal_positions(self.C)
-
         self.frames = self.cal_frames(self.C, self.P)
-
 
     def define_constant(self, settings, metadata, difficulty, music_id):
         C = {
@@ -77,7 +39,18 @@ class VideoPrefetch:
             'note skin id': settings['NOTE_SKIN_ID'],
             'lane skin id': settings['LANE_SKIN_ID'],
 
+            'frame length': int((metadata['length'] + 5) * settings['FPS']),
+
+            'edge color': settings['EDGE_COLOR'],
+            'center color': settings['CENTER_COLOR'],
+            'line color': settings['LINE_COLOR'],
+
+            'codec': settings['CODEC'],
+            'video name': str(music_id) + settings['DIFFICULTY'][difficulty] + '.' + settings['VIDEO_EXTENSION'],
+            'number of thread': multiprocessing.cpu_count() if settings['THREAD'] == 0 else settings['THREAD'],
+
             'position length': None
+
         }
 
         return C
@@ -105,7 +78,7 @@ class VideoPrefetch:
             frame = frame + 1
 
         last = dict()
-        last['y'] = BOTTOM
+        last['y'] = self.C['bottom']
         last['r'] = 1
         last['x'] = dict()
         for x in range(1,8):
@@ -171,7 +144,7 @@ class VideoPrefetch:
 
         notes = json.load(open('score/' + C['song id'] + '.' + C['difficulty'] + '.json'))
 
-        for current_frame in range(int((C['song length'] + 5) * C['fps'])):
+        for current_frame in range(C['frame length']):
             frame = list()
 
             # check last frame
@@ -197,358 +170,251 @@ class VideoPrefetch:
         return copy.deepcopy(self.C), copy.deepcopy(self.P)
 
     def get_frame_info(self):
-        return copy.deepcopy(self.frames)
+        return self.frames
 
 
 class VideoFrameMaker:
-    def __init__(self):
+    def __init__(self, settings, note_frames, queue, thread_id):
+        self.C, self.P = settings
+        self.note_frames = note_frames
+        self.queue = queue
+        self.thread_id = thread_id
+
+        self.images = dict()
+        image_pack_list = [
+            'lane ' + self.C['lane skin id'],
+            'note ' + self.C['note skin id']
+        ]
+        for image_pack in image_pack_list:
+            self.add_images(image_pack)
+
+        self.bg = Image.open('assets/bgs.png').convert('RGB').resize((self.C['width'], self.C['height']))
+        game_play_line = self.img_resize(self.images['game_play_line.png'], self.C['lane scale'])
+        self.paste_center(self.bg, self.C['width'] / 2, self.C['bottom'], game_play_line)
+        bg_line_rhythm = self.img_resize(self.images['bg_line_rhythm.png'], self.C['lane scale'])
+        self.paste_center(self.bg, self.C['width'] / 2, self.C['bottom'] - bg_line_rhythm.height / 2, bg_line_rhythm)
+        self.empty_image = Image.new("RGBA", (1, 1))
+
+
+
+    def work(self):
+        frame_id = self.thread_id
+        for frame in self.note_frames:
+            bg = self.bg.copy()
+            for note in frame:
+                if note['type'] == 'Bar':
+                    self.draw_bar(bg, note)
+                elif note['type'] == 'Sim':
+                    self.draw_sim(bg, note)
+                else:
+                    self.draw_note(bg, note)
+
+            data = {
+                'index': frame_id,
+                'data': bg
+            }
+            self.queue.put(data)
+            print('send', data['index'])
+
+            frame_id += self.C['number of thread'] - 1
+
+
+    def add_images(self, file_name):
+        json_dict = json.load(open('assets/' + file_name + '.json'))
+        image = Image.open('assets/' + file_name + '.png')
+
+        for obj in json_dict['frames']:
+            frame = json_dict['frames'][obj]['frame']
+            x1 = frame['x']
+            y1 = frame['y']
+            x2 = x1 + frame['w']
+            y2 = y1 + frame['h']
+
+            self.images[obj] = image.crop((x1, y1, x2, y2)).convert('RGBA')
+
+    def paste_center(self, base, x, y, img):
+        w, h = img.size
+        base.paste(img, (int(x - w / 2), int(y - h / 2)), img)
+        return
+
+    def paste_abs(self, base, x, y, img):
+        base.paste(img, (x, y), img)
+        return
+
+    def draw_bar(self, bg, note):
+
+        if note['frame'][0] > self.C['position length']:
+            bottom_distance = self.C['lane space bottom']
+            total_distance = (note['lane'][1] - note['lane'][0]) * bottom_distance
+            distance_per_frame = total_distance / (note['frame'][0] - note['frame'][1])
+            overed_frame = note['frame'][0] - self.C['position length']
+            distance = overed_frame * distance_per_frame
+        else:
+            distance = 0
+
+        # frame correction
+        if note['frame'][0] > self.C['position length']:
+            note['frame'][0] = self.C['position length']
+        if note['frame'][1] < 0:
+            note['frame'][1] = 0
+
+        draw = ImageDraw.Draw(bg)
+
+        self.draw_gradient(draw, note, distance, self.C['edge color'], self.C['center color'], self.C['line color'])
+
+    def draw_gradient(self, draw, note, prog_width, c1, c2, c3):
+        c3 = tuple(c3)
+        tx, ty, bx, by, ts, bs = self.get_note_pos(note)
+        bx = bx + prog_width
+
+        lnl_scale = self.C['lnl scale']
+        NOTE_WIDTH = self.C['note width']
+        NOTE_SIZE = self.C['note size']
+
+        trwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * ts / 2  # top real width half
+        brwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * bs / 2  # bottom real width half
+
+        for y in range(ty, by):
+            r = 1 - (by - y) / (by - ty)
+            x1 = int((1 - r) * (tx - trwh) + r * (bx - brwh))
+            x2 = int((1 - r) * (tx + trwh) + r * (bx + brwh))
+
+            color = list()
+            r = math.sin(r * math.pi)
+            for i in range(4):
+                color.append(int((1 - r) * c1[i] + r * c2[i]))
+            color = tuple(color)
+
+            draw.line([(x1, y), (x2, y)], color)
+
+        draw.line([(tx - trwh, ty), (bx - brwh, by)], c3, width=NOTE_SIZE * 3)
+        draw.line([(tx + trwh, ty), (bx + brwh, by)], c3, width=NOTE_SIZE * 3)
+        return
+
+    def draw_sim(self, bg, note):
+        note_sprite = self.get_sim_sprite(note)
+        x1, x2, y, s = self.get_note_pos(note)
+        self.paste_center(bg, (x1+x2)/2, y, note_sprite)
+
+    def draw_note(self, bg, note):
+        note_sprite = self.get_note_sprite(note)
+        x, y, s = self.get_note_pos(note)
+        self.paste_center(bg, x, y, note_sprite)
+
+    def draw_flick_top(self, bg, note):
+        x, y, s = self.get_note_pos(note)
+        flickFPS = self.C['flick fps']
+        NOTE_WIDTH = self.C['note width']
+        flicky = s * NOTE_WIDTH * 0.1 + (note['frame'] % flickFPS) * s * NOTE_WIDTH * 0.3 / flickFPS
+        flick_top = self.img_resize(self.images['note_flick_top.png'], s)
+        self.paste_center(bg, x, y - flicky, flick_top)
+
+    def draw_bpm(self, bg, bpms):
         pass
+
+    def get_note_sprite(self, note):
+        type_dict = {
+            'Single': 'note_normal_',
+            'Long': 'note_long_',
+            'SingleOff': 'note_normal_gray_',
+            'Skill': 'note_skill_',
+            'Flick': 'note_flick_'
+        }
+
+        type = note['type']
+        frame = note['frame']
+        lane = note['lane']
+
+        if type == 'Tick':
+            img = self.images['note_slide_among.png']
+        else:
+            img = self.images[type_dict[type] + str(lane - 1) + '.png']
+
+        return self.img_resize(img, self.P[frame]['r'])
+
+    def img_resize(self, img, f):
+        w, h = img.size
+        if int(w * f) == 0 or int(h * f) == 0:
+            return self.empty_image.copy()
+        # .resize() method returns new resized image
+        return img.resize((int(w * f), int(h * f)))
+
+    def get_sim_sprite(self, note):
+        img = self.images['simultaneous_line.png']
+        x1, x2, y, s = self.get_note_pos(note)
+        sim_width = int(abs(x2-x1))
+        sim_height = int(img.height * self.C['note size'] * s)
+
+        if sim_width == 0 or sim_height == 0:
+            return self.empty_image.copy()
+        else:
+            # .resize() method returns new resized image
+            return img.resize((sim_width, sim_height))
+
+    def get_note_pos(self, note):
+        if note['type'] == 'Bar':
+            tx = self.P[note['frame'][1]]['x'][note['lane'][1]]
+            ty = self.P[note['frame'][1]]['y']
+            by = self.P[note['frame'][0]]['y']
+            ts = self.P[note['frame'][1]]['r']
+            bs = self.P[note['frame'][0]]['r']
+            bx = self.P[note['frame'][0]]['x'][note['lane'][0]]
+            return tx, ty, bx, by, ts, bs
+        elif note['type'] == 'Sim':
+            x1 = self.P[note['frame']]['x'][note['lane'][0]]
+            x2 = self.P[note['frame']]['x'][note['lane'][1]]
+            y = self.P[note['frame']]['y']
+            s = self.P[note['frame']]['r']
+            return x1, x2, y, s
+        else:
+            x = self.P[note['frame']]['x'][note['lane']]
+            y = self.P[note['frame']]['y']
+            s = self.P[note['frame']]['r']
+            return x, y, s
+
 
 class VideoWriter:
-    def __init__(self):
-        pass
-
-
-def pil2cv(pil):
-    numpy_image = np.array(pil)
-    if pil.mode == 'RGB':
-        return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
-    elif pil.mode == 'RGBA':
-        return cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGRA)
-    # return np.array(pil)[:, :, ::-1].copy()
-
-def cv2pil(cvimg):
-    if cvimg.shape[2] == 3:
-        return Image.fromarray(cv2.cvtColor(cvimg, cv2.COLOR_BGR2RGB))
-    if cvimg.shape[2] == 4:
-        return Image.fromarray(cv2.cvtColor(cvimg, cv2.COLOR_BGRA2RGBA))
-
-def write_frame(img):
-    frame = pil2cv(img)
-    video.write(frame)
-
-def add_images(file_name):
-    json_dict = json.load(open('assets/' + file_name + '.json'))
-    image = Image.open('assets/' + file_name + '.png')
-
-    for obj in json_dict['frames']:
-        frame = json_dict['frames'][obj]['frame']
-        x1 = frame['x']
-        y1 = frame['y']
-        x2 = x1 + frame['w']
-        y2 = y1 + frame['h']
-
-        images[obj] = image.crop((x1,y1,x2,y2)).convert('RGBA')
-
-def paste_center(base, x, y, img):
-    w, h = img.size
-    base.paste(img, (int(x - w/2), int(y - h/2)), img)
-
-def paste_center_no_mask(base, x, y, img):
-    w, h = img.size
-    base.paste(img, (int(x - w / 2), int(y - h / 2)))
-
-def paste_abs(base, x, y, img):
-    base.paste(img, (x, y), img)
-
-def img_resize(img, f):
-    w, h = img.size
-
-    if int(w*f) == 0 or int(h*f) == 0:
-        return Image.new("RGBA", (1, 1))
-    return img.resize((int(w*f), int(h*f)))
-
-def simultaneous_line_resize(sim, w, r):
-    if int(w) == 0 or int(sim.height*NOTE_SIZE*r) == 0:
-        return Image.new("RGBA", (1, 1))
-
-    return sim.resize((int(w), int(sim.height*NOTE_SIZE*r)))
-
-
-
-def cal_frames():
-    height = BOTTOM - TOP
-    frame = 0
-
-    while NOTE_SPEED * frame**3 < height:
-        position = dict()
-        position['y'] = int(NOTE_SPEED * frame**3 + TOP)
-        position['r'] = (position['y'] - TOP) / height
-        position['x'] = dict()
-        for x in range(1,8):
-            position['x'][x] = int(TX[x] + (BX[x] - TX[x])*position['r'])
-        note_pos.append(position)
-
-        frame = frame + 1
-
-    last = dict()
-    last['y'] = BOTTOM
-    last['r'] = 1
-    last['x'] = dict()
-    for x in range(1,8):
-        last['x'][x] = int(BX[x])
-
-    note_pos.append(last)
-
-    print(note_pos, len(note_pos))
-    return len(note_pos) - 1
-
-def get_note_sprite(note):
-    type_dict = {
-        'Single' : 'note_normal_',
-        'Long' : 'note_long_',
-        'SingleOff' : 'note_normal_gray_',
-        'Skill' : 'note_skill_',
-        'Flick' : 'note_flick_'
-    }
-
-    type = note['type']
-    frame = note['frame']
-    lane = note['lane']
-
-    if type == 'Tick':
-        img = images['note_slide_among.png']
-    else:
-        img = images[type_dict[type] + str(lane - 1) + '.png']
-
-    return img_resize(img, note_pos[frame]['r'])
-
-def get_note_pos(note):
-    if note['type'] == 'Bar':
-        tx = note_pos[note['frame'][1]]['x'][note['lane'][1]]
-        ty = note_pos[note['frame'][1]]['y']
-        bx = note_pos[note['frame'][0]]['x'][note['lane'][0]]
-        by = note_pos[note['frame'][0]]['y']
-        ts = note_pos[note['frame'][1]]['r']
-        bs = note_pos[note['frame'][0]]['r']
-        return tx, ty, bx, by, ts, bs
-    elif note['type'] == 'Sim':
-        x1 = note_pos[note['frame']]['x'][note['lane'][0]]
-        x2 = note_pos[note['frame']]['x'][note['lane'][1]]
-        y = note_pos[note['frame']]['y']
-        s = note_pos[note['frame']]['r']
-        return x1, x2, y, s
-    else:
-        x = note_pos[note['frame']]['x'][note['lane']]
-        y = note_pos[note['frame']]['y']
-        s = note_pos[note['frame']]['r']
-        return x, y, s
-
-def make_line_old(canvas, note):
-    tx, ty, bx, by, ts, bs = get_note_pos(note)
-
-    trwh = NOTE_WIDTH*NOTE_SIZE*ts/2     #top real width half
-    brwh = NOTE_WIDTH*NOTE_SIZE*bs/2     #botoom real width half
-
-    prog = (note['frame'][2])/(note['time'][1]*FPS - note['time'][0]*FPS)
-    prog_width = (BX[note['lane'][1]] - BX[note['lane'][0]]) * prog
-
-    overlay = Image.new('RGBA', canvas.size, (0,0,0,0))
-    draw = ImageDraw.Draw(overlay)
-
-    draw.polygon([(tx-trwh, ty), (bx-brwh + prog_width, by), (bx+brwh + prog_width, by), (tx+trwh, ty)], fill=(255, 100, 255, 100))
-    paste_abs(canvas, 0, 0, overlay)
-
-def draw_gradient(draw, pos, prog_width, c1, c2, c3):
-    tx, ty, bx, by, ts, bs = pos
-    bx = bx + prog_width
-
-    trwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * ts / 2  # top real width half
-    brwh = lnl_scale * NOTE_WIDTH * NOTE_SIZE * bs / 2  # bottom real width half
-
-    for y in range(ty, by):
-        r = 1 - (by-y)/(by-ty)
-        x1 = int((1-r)*(tx - trwh) + r*(bx - brwh))
-        x2 = int((1-r)*(tx + trwh) + r*(bx + brwh))
-
-        color = list()
-        r = math.sin(r * math.pi)
-        for i in range(4):
-            color.append(int((1-r)*c1[i] + r*c2[i]))
-        color = tuple(color)
-
-        draw.line([(x1,y),(x2,y)], color)
-
-    draw.line([(tx - trwh, ty), (bx - brwh, by)], c3, width=NOTE_SIZE * 3)
-    draw.line([(tx + trwh, ty), (bx + brwh, by)], c3, width=NOTE_SIZE * 3)
-
-
-def make_line(canvas, note):
-    prog = (note['frame'][2])/(note['time'][1]*FPS - note['time'][0]*FPS)
-    prog_width = (BX[note['lane'][1]] - BX[note['lane'][0]]) * prog
-
-    overlay = Image.new('RGBA', canvas.size, (0,0,0,0))
-    draw = ImageDraw.Draw(overlay)
-
-    edge_color = (75,226,111,151)
-    center_color = (76,228,112,77)
-    line_color = (74, 227,112,192)
-
-    draw_gradient(draw,get_note_pos(note), prog_width, edge_color, center_color, line_color)
-    paste_abs(canvas, 0, 0, overlay)
-
-def make_line_perspective(canvas, note):
-    tx, ty, bx, by, ts, bs = get_note_pos(note)
-
-    if ty == by:
-        return canvas
-
-    background = Image.new('RGBA', (WIDTH, HEIGHT))
-
-
-
-    rtwh = lnl.width*lnl_scale*NOTE_SIZE*ts/2   # real top width half
-    rbwh = lnl.width*lnl_scale*NOTE_SIZE*bs/2   # real bottom width half
-
-
-    # paste_center_no_mask(background, WIDTH/2, HEIGHT/2, lnl)
-    background.paste(lnl, (0,0))
-
-    cvimg = pil2cv(background)
-
-    nw = [0,0]
-    ne = [lnl.width,0]
-    sw = [0,lnl.height]
-    se = [lnl.width,lnl.height]
-
-    # nw, sw, ne, se
-    origin = np.float32([nw, sw, se, ne])
-
-    nw = [tx - rtwh, ty]
-    ne = [tx + rtwh, ty]
-    sw = [bx - rbwh, by]
-    se = [bx + rbwh, by]
-
-    # nw, sw, ne, se
-    target = np.float32([nw, sw, se, ne])
-    M = cv2.getPerspectiveTransform(origin, target)
-
-
-    dst = cv2.warpPerspective(cvimg, M, (WIDTH, HEIGHT))
-
-    newimg = cv2pil(dst)
-    paste_abs(canvas,0,0,newimg)
-
-
-    # cv2.imshow('img',cvimg)
-    # cv2.waitKey(0)
-
-    # lnl = lnl.transform((WIDTH, HEIGHT), Image.PERSPECTIVE, (1,0.3,-700,0,1,-700))
-    # lnl.show()
-
-    return canvas
-
-
-note_len = cal_frames()
-bg = Image.open('assets/bgs.png').convert('RGB').resize((WIDTH,HEIGHT))
-add_images('lane ' + lane_skin_id)
-add_images('note ' + note_skin_id)
-
-game_play_line = img_resize(images['game_play_line.png'], LANE_SCALE)
-paste_center(bg, WIDTH/2, BOTTOM, game_play_line)
-bg_line_rhythm = img_resize(images['bg_line_rhythm.png'], LANE_SCALE)
-paste_center(bg, WIDTH/2, BOTTOM - bg_line_rhythm.height/2, bg_line_rhythm)
-
-
-
-
-notes = json.load(open('score/' + SONG_ID + '.' + DIFFICULTY + '.json'))
-
-drawing = []
-frame = 0
-t = 1/FPS
-
-while frame*t < SONG_LEN and False:
-    canvas = bg.copy()
-    read = True
-
-    #draw bpm
-    for bpm in BPMS:
-        pass
-
-    #add to drawing
-    while read and notes:
-        if notes[0]['type'] == 'Bar':
-            if notes[0]['time'][0] < note_len*t + frame*t:
-                notes[0]['frame'] = [0,0,0]
-                drawing.append(notes[0])
-                notes = notes[1:]
-            else:
-                read = False
-        elif notes[0]['time'] < note_len*t + frame*t:
-            notes[0]['frame'] = 0
-            drawing.append(notes[0])
-            notes = notes[1:]
-        else:
-            read = False
-
-    #draw in drawing
-    for note in drawing:
-        # skip finished notes
-        if type(note['frame']) is list:
-            if note['frame'][1] == note_len:
-                continue
-        else:
-            if note['frame'] == note_len:
-                continue
-
-        # Draw line
-        if note['type'] == 'Bar':
-            make_line(canvas, note)
-
-            if note['frame'][0] != note_len:
-                note['frame'][0] = note['frame'][0] + 1
-            else:
-                note['frame'][2] = note['frame'][2] + 1
-
-            if note['time'][1] < note_len*t + frame*t:
-                note['frame'][1] = note['frame'][1] + 1
-
-
-        # simultaneous note
-        elif note['type'] == 'Sim':
-            sim = images['simultaneous_line.png'].copy()
-            x1, x2, y, s = get_note_pos(note)
-            sim = simultaneous_line_resize(sim, abs(x1 - x2), s)
-            paste_center(canvas, (x1 + x2) / 2, y, sim)
-            note['frame'] = note['frame'] + 1
-
-        else:
-            cur_frame = note['frame']
-            note_sprite = get_note_sprite(note)
-            x, y, s = get_note_pos(note)
-            paste_center(canvas, x, y, note_sprite)
-            note['frame'] = note['frame'] + 1
-
-            if note['type'] == 'Flick':
-                flicky = s * NOTE_WIDTH * 0.1 + (note['frame'] % flickFPS) * s * NOTE_WIDTH * 0.3 / flickFPS
-                flick_top = img_resize(images['note_flick_top.png'].copy(), s)
-                paste_center(canvas, x, y - flicky, flick_top)
-
-    write_frame(canvas)
-    frame = frame + 1
-
-    # if frame > 1200:
-    #     break
-
-
-# note = {
-#     'type':'Flick',
-#     'frame':55,
-#     'lane':1,
-# }
-#
-# note_sprite = get_note_sprite(note)
-# x, y, s = get_note_pos(note)
-# paste_center(bg, x, y, note_sprite)
-# flicky = (note['frame'] % flickFPS)*s*NOTE_WIDTH*0.3/flickFPS
-# flick_top = img_resize(images['note_flick_top.png'].copy(), s)
-# paste_center(bg, x, y - flicky, flick_top)
-
-
-# make_line(bg, note)
-
-# bg.show()
-
-
-video.release()
+    def __init__(self, settings, queue):
+        self.C, self.P = settings
+        self.queue = queue
+
+        # cv2 bug: cannot create video object in __init__
+        # FOURCC = cv2.VideoWriter_fourcc(*self.C['codec'])
+        # SIZE = (self.C['width'], self.C['height'])
+        # self.video = cv2.VideoWriter(self.C['video name'], FOURCC, self.C['fps'], SIZE)
+
+    def work(self):
+        # cv2 bug: cannot create video object in __init__
+        FOURCC = cv2.VideoWriter_fourcc(*self.C['codec'])
+        SIZE = (self.C['width'], self.C['height'])
+        self.video = cv2.VideoWriter(self.C['video name'], FOURCC, self.C['fps'], SIZE)
+
+        index = 0
+        buffer = list()
+        for iteration in range(self.C['frame length']):
+            frame = self.queue.get()
+            print('get', frame['index'])
+            buffer.append(frame)
+            buffer = sorted(buffer, key=lambda data: data['index'])
+
+            new_buffer = buffer
+            for data in buffer:
+                if index != data['index']:
+                    break
+
+                pil_image = data['data']
+                cv2_img = self.pil2cv(pil_image)
+                self.video.write(cv2_img)
+                print('wrote', index)
+                index += 1
+                new_buffer = new_buffer[1:]
+            buffer = new_buffer
+
+        self.video.release()
+
+    def pil2cv(self, pil_image):
+        numpy_image = np.array(pil_image)
+        if pil_image.mode == 'RGB':
+            return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
+        elif pil_image.mode == 'RGBA':
+            return cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGRA)

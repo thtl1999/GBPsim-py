@@ -16,7 +16,14 @@
   "NOTE_SKIN_ID": "0",
   "LANE_SKIN_ID": "0",
 
-  "THREAD": 0,
+  "THREAD": 2,
+
+  "CODEC": "mp4v",
+  "VIDEO_EXTENSION": "mp4",
+
+  "EDGE_COLOR": [75, 226, 111, 151],
+  "CENTER_COLOR": [76, 228, 112, 77],
+  "LINE_COLOR": [74, 227, 112, 192],
 
 
   "DIFFICULTY" : {
