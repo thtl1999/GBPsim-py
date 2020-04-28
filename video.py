@@ -174,10 +174,9 @@ class VideoPrefetch:
 
 
 class VideoFrameMaker:
-    def __init__(self, settings, note_frames, queue, thread_id):
+    def __init__(self, settings, note_frames, thread_id):
         self.C, self.P = settings
         self.note_frames = note_frames
-        self.queue = queue
         self.thread_id = thread_id
 
         self.images = dict()
@@ -195,10 +194,14 @@ class VideoFrameMaker:
         self.paste_center(self.bg, self.C['width'] / 2, self.C['bottom'] - bg_line_rhythm.height / 2, bg_line_rhythm)
         self.empty_image = Image.new("RGBA", (1, 1))
 
-
-
     def work(self):
-        frame_id = self.thread_id
+
+        # cv2 bug: cannot create video object in __init__
+        fourcc = cv2.VideoWriter_fourcc(*self.C['codec'])
+        video_size = (self.C['width'], self.C['height'])
+        video_name = 'video/' + str(self.thread_id) + 'th ' + self.C['video name']
+        video = cv2.VideoWriter(video_name, fourcc, self.C['fps'], video_size)
+
         for frame in self.note_frames:
             bg = self.bg.copy()
             for note in frame:
@@ -209,15 +212,17 @@ class VideoFrameMaker:
                 else:
                     self.draw_note(bg, note)
 
-            data = {
-                'index': frame_id,
-                'data': bg
-            }
-            self.queue.put(data)
-            print('send', data['index'])
+            cv2_img = self.pil2cv(bg)
+            video.write(cv2_img)
 
-            frame_id += self.C['number of thread'] - 1
+        video.release()
 
+    def pil2cv(self, pil_image):
+        numpy_image = np.array(pil_image)
+        if pil_image.mode == 'RGB':
+            return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
+        elif pil_image.mode == 'RGBA':
+            return cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGRA)
 
     def add_images(self, file_name):
         json_dict = json.load(open('assets/' + file_name + '.json'))
@@ -258,9 +263,12 @@ class VideoFrameMaker:
         if note['frame'][1] < 0:
             note['frame'][1] = 0
 
+        # cannot draw transparent color on RGB image
+        overlay = Image.new('RGBA', bg.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(bg)
 
         self.draw_gradient(draw, note, distance, self.C['edge color'], self.C['center color'], self.C['line color'])
+        self.paste_abs(bg, 0, 0, overlay)
 
     def draw_gradient(self, draw, note, prog_width, c1, c2, c3):
         c3 = tuple(c3)
@@ -371,50 +379,3 @@ class VideoFrameMaker:
             y = self.P[note['frame']]['y']
             s = self.P[note['frame']]['r']
             return x, y, s
-
-
-class VideoWriter:
-    def __init__(self, settings, queue):
-        self.C, self.P = settings
-        self.queue = queue
-
-        # cv2 bug: cannot create video object in __init__
-        # FOURCC = cv2.VideoWriter_fourcc(*self.C['codec'])
-        # SIZE = (self.C['width'], self.C['height'])
-        # self.video = cv2.VideoWriter(self.C['video name'], FOURCC, self.C['fps'], SIZE)
-
-    def work(self):
-        # cv2 bug: cannot create video object in __init__
-        FOURCC = cv2.VideoWriter_fourcc(*self.C['codec'])
-        SIZE = (self.C['width'], self.C['height'])
-        self.video = cv2.VideoWriter(self.C['video name'], FOURCC, self.C['fps'], SIZE)
-
-        index = 0
-        buffer = list()
-        for iteration in range(self.C['frame length']):
-            frame = self.queue.get()
-            print('get', frame['index'])
-            buffer.append(frame)
-            buffer = sorted(buffer, key=lambda data: data['index'])
-
-            new_buffer = buffer
-            for data in buffer:
-                if index != data['index']:
-                    break
-
-                pil_image = data['data']
-                cv2_img = self.pil2cv(pil_image)
-                self.video.write(cv2_img)
-                print('wrote', index)
-                index += 1
-                new_buffer = new_buffer[1:]
-            buffer = new_buffer
-
-        self.video.release()
-
-    def pil2cv(self, pil_image):
-        numpy_image = np.array(pil_image)
-        if pil_image.mode == 'RGB':
-            return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
-        elif pil_image.mode == 'RGBA':
-            return cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGRA)
