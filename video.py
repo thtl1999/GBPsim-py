@@ -144,16 +144,17 @@ class VideoPrefetch:
         }
 
         frames = list()
+        for _ in range(C['frame length']):
+            frames.append(list())
         score_pointer = 0
 
         notes = json.load(open('score/' + C['song id'] + '.' + C['difficulty'] + '.json'))
 
         for current_frame in range(C['frame length']):
-            frame = list()
-
+            frame = frames[current_frame]
             # check last frame
-            if frames:
-                self.add_moved_notes(frame, frames[-1])
+            if not current_frame == 0:
+                self.add_moved_notes(frame, frames[current_frame-1])
 
             # check if new note should appear
             while score_pointer < len(notes):
@@ -164,17 +165,30 @@ class VideoPrefetch:
                     self.add_note(frame, notes[score_pointer])
                     score_pointer += 1
 
-            # sort note in frame for drawing order
-            frame = sorted(frame, key=lambda note: sort_order[note['type']])
-            frames.append(frame)
+        # sort note in frame for drawing order
+        sorted_frames = list()
+        for frame in frames:
+            sorted_frames.append(sorted(frame, key=lambda note: sort_order[note['type']]))
 
-        return frames
+        return sorted_frames
 
     def copy_settings(self):
         return copy.deepcopy(self.C), copy.deepcopy(self.P)
 
     def get_frame_info(self):
         return self.frames
+
+    def add_single_effect(self, frames, start_frame):
+        pass
+
+    def add_long_effect(self, frames, start_frame, end_frame):
+        pass
+
+    def add_skill_effect(self, frames, start_frame):
+        pass
+
+    def add_flick_effect(self, frames, start_frame):
+        pass
 
 
 class VideoFrameMaker:
@@ -261,18 +275,24 @@ class VideoFrameMaker:
         else:
             distance = 0
 
-        # frame correction
-        if note['frame'][0] > self.C['position length']:
-            note['frame'][0] = self.C['position length']
-        if note['frame'][1] < 0:
-            note['frame'][1] = 0
-
         # cannot draw transparent color on RGB image
         overlay = Image.new('RGBA', bg.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
 
         self.draw_gradient(draw, note, distance, self.C['edge color'], self.C['center color'], self.C['line color'])
         self.paste_abs(bg, 0, 0, overlay)
+
+        # draw long note sprite when [0] is at bottom
+        if note['frame'][0] == self.C['position length']:
+            long_note = {
+                'type': 'Long',
+                'lane': 4,
+                'frame': self.C['position length']
+            }
+
+            long_note_sprite = self.get_note_sprite(long_note)
+            tx, ty, bx, by, ts, bs = self.get_note_pos(note)
+            self.paste_center(bg, bx + distance, by, long_note_sprite)
 
     def draw_gradient(self, draw, note, prog_width, c1, c2, c3):
         c3 = tuple(c3)
@@ -368,6 +388,12 @@ class VideoFrameMaker:
 
     def get_note_pos(self, note):
         if note['type'] == 'Bar':
+            # frame correction
+            if note['frame'][0] > self.C['position length']:
+                note['frame'][0] = self.C['position length']
+            if note['frame'][1] < 0:
+                note['frame'][1] = 0
+
             tx = self.P[note['frame'][1]]['x'][note['lane'][1]]
             ty = self.P[note['frame'][1]]['y']
             by = self.P[note['frame'][0]]['y']
