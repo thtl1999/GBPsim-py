@@ -1,2 +1,2 @@
-# BGPsim-py
+# GBPsim-py
  
