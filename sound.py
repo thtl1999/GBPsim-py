@@ -59,6 +59,7 @@ class SoundMaker:
         self.notes = notes
         self.sound_name = 'video/' + str(thread_id) + 'th ' + str(music_id)
         self.music_length = (metadata['length'] + 5) * 1000
+        self.difficulty = difficulty
 
     def work(self):
         base = AudioSegment.silent(duration= self.music_length)
@@ -69,7 +70,7 @@ class SoundMaker:
             sound_type = self.sound_table[note['type']]
             base = base.overlay(self.sounds[sound_type], position=note['time'] * 1000)
 
-        base.export(self.sound_name + '.wav', format='wav')
+        base.export(self.sound_name + self.difficulty + '.wav', format='wav')
 
 
 # musiccode = '123'

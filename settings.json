@@ -19,8 +19,10 @@
 
   "THREAD": 0,
 
-  "CODEC": "mp4v",
-  "VIDEO_EXTENSION": "mp4",
+  "CODEC": "XVID",
+  "VIDEO_EXTENSION": "avi",
+  "OUTPUT_CODEC": "mpeg4",
+  "OUTPUT_BITRATE": "9000k",
 
   "EDGE_COLOR": [75, 226, 111, 151],
   "CENTER_COLOR": [76, 228, 112, 77],

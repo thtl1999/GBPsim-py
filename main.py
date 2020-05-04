@@ -1,5 +1,6 @@
 import video
 import sound
+import merge
 import json
 import time
 import numpy as np
@@ -66,6 +67,13 @@ def merge_video(settings, metadata, music_id, difficulty):
     print('Merge process start with', settings['THREAD'], 'processes')
     start_time = time.time()
 
+    sound_name = str(music_id) + difficulty + '.wav'
+    video_name = str(music_id) + difficulty + '.' + settings['VIDEO_EXTENSION']
+    bgm_name = metadata['bgmId']
+
+    merge_class = merge.Merge_class(settings['THREAD'], video_name, sound_name, bgm_name)
+    merge_class.merge()
+
     end_time = time.time()
     print('Merge processing time:', end_time - start_time)
 
@@ -86,10 +94,11 @@ if __name__=='__main__':
 
     difficulty_id = '3'
 
-    #make_video(settings, metadata, music_id, difficulty_id)
+    # make_video(settings, metadata, music_id, difficulty_id)
 
-    make_sound(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
+    # make_sound(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
 
+    merge_video(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
 
 
     """
