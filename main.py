@@ -51,7 +51,7 @@ def make_sound(settings, metadata, music_id, difficulty):
     threads = list()
 
     for i in range(settings['THREAD']):
-        maker = sound.SoundMaker(settings, music_id, difficulty, distributed_notes[i], i)
+        maker = sound.SoundMaker(settings, music_id, difficulty, metadata, distributed_notes[i], i)
         p = multiprocessing.Process(target=maker.work)
         threads.append(p)
         p.start()
@@ -73,6 +73,11 @@ def merge_video(settings, metadata, music_id, difficulty):
 if __name__=='__main__':
     settings = import_settings()
 
+    """
+    music_id is not 3-digit number.
+    3-digit number is required only for bgm sound file name
+    which can find in song metadata
+    """
     music_id = '128'
 
     metadata = json.load(open('metadata/' + music_id + '.json', encoding='utf-8'))
@@ -86,4 +91,12 @@ if __name__=='__main__':
     make_sound(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
 
 
+
+    """
+    TODO
+    
+    skip first nth notes function
+    particles
+    
+    """
 
