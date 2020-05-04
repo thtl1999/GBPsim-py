@@ -38,6 +38,24 @@ def get_notes(musiccode):
 
     return (notes, music_offset)
 
+class SoundMaker:
+    def __init__(self, settings, music_id, difficulty, notes, thread_id):
+        sound_id = settings['NOTE_SOUND_ID']
+        self.sounds = {
+            'normal': 'note_normal_' + sound_id + '.wav',
+            'flick': 'note_flick_' + sound_id + '.wav',
+            'skill': 'note_skill.wav'
+        }
+
+        self.notes = notes
+        self.sound_name = 'video/' + str(self.thread_id) + 'th ' + str(music_id)
+
+    def work(self):
+        pass
+
+
+
+
 musiccode = '123'
 musiccode = input('Write 3 digit number: ')
 notes, music_offset = get_notes(musiccode)

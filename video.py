@@ -282,7 +282,7 @@ class VideoFrameMaker:
         self.draw_gradient(draw, note, distance, self.C['edge color'], self.C['center color'], self.C['line color'])
         self.paste_abs(bg, 0, 0, overlay)
 
-        # draw long note sprite when [0] is at bottom
+        # draw long note sprite when frame[0] is at bottom
         if note['frame'][0] == self.C['position length']:
             long_note = {
                 'type': 'Long',

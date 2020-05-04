@@ -1,4 +1,5 @@
 import video
+import sound
 import json
 import time
 import numpy as np
@@ -15,17 +16,17 @@ def import_settings():
     return settings
 
 
-def distribute_frames(frames, num_of_threads):
-    return np.array_split(frames, num_of_threads)
+def split_data(data, num_of_threads):
+    return np.array_split(data, num_of_threads)
 
 
-def make_video(settings, metadata, music_id, difficulty):
+def make_video(settings, metadata, music_id, difficulty_id):
     print('Video process start with', settings['THREAD'], 'processes')
-    video_start_time = time.time()
+    start_time = time.time()
 
-    video_prefetcher = video.VideoPrefetch(settings, metadata, difficulty, music_id)
+    video_prefetcher = video.VideoPrefetch(settings, metadata, difficulty_id, music_id)
     frame_list = video_prefetcher.get_frame_info()
-    distributed_frames = distribute_frames(frame_list, settings['THREAD'])
+    distributed_frames = split_data(frame_list, settings['THREAD'])
     threads = list()
 
     for i in range(settings['THREAD']):
@@ -37,8 +38,36 @@ def make_video(settings, metadata, music_id, difficulty):
     for thread in threads:
         thread.join()
 
-    video_end_time = time.time()
-    print('Video processing time:', video_end_time - video_start_time)
+    end_time = time.time()
+    print('Video processing time:', end_time - start_time)
+
+
+def make_sound(settings, metadata, music_id, difficulty):
+    print('Sound process start with', settings['THREAD'], 'processes')
+    start_time = time.time()
+
+    notes = json.load(open('score/' + music_id + '.' + difficulty + '.json'))
+    distributed_notes = split_data(notes, settings['THREAD'])
+    threads = list()
+
+    for i in range(settings['THREAD']):
+        maker = sound.SoundMaker(settings, music_id, difficulty, distributed_notes[i], i)
+        p = multiprocessing.Process(target=maker.work)
+        threads.append(p)
+        p.start()
+
+    for thread in threads:
+        thread.join()
+
+    end_time = time.time()
+    print('Sound processing time:', end_time - start_time)
+
+def merge_video(settings, metadata, music_id, difficulty):
+    print('Merge process start with', settings['THREAD'], 'processes')
+    start_time = time.time()
+
+    end_time = time.time()
+    print('Merge processing time:', end_time - start_time)
 
 
 if __name__=='__main__':
@@ -50,9 +79,11 @@ if __name__=='__main__':
 
     music = AudioSegment.from_mp3('bgm/' + metadata['bgmId'] + ".mp3")
 
-    difficulty = '3'
+    difficulty_id = '3'
 
-    make_video(settings, metadata, music_id, difficulty)
+    #make_video(settings, metadata, music_id, difficulty_id)
+
+    make_sound(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
 
 
 
