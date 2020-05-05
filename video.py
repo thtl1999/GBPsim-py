@@ -1,5 +1,5 @@
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import cv2
 import json
@@ -13,6 +13,7 @@ class VideoPrefetch:
         self.C = self.define_constant(settings, metadata, difficulty, music_id)
         self.P , self.C['position length'] = self.cal_positions(self.C)
         self.frames = self.cal_frames(self.C, self.P)
+        self.frames = self.delete_skip_frame(self.frames)
 
     def define_constant(self, settings, metadata, difficulty, music_id):
         C = {
@@ -38,6 +39,12 @@ class VideoPrefetch:
             'flick fps': settings['FLICK_FPS'],
             'note skin id': settings['NOTE_SKIN_ID'],
             'lane skin id': settings['LANE_SKIN_ID'],
+            'music jacket': 'jacket/' + music_id + '/jacket.png',
+            'jacket scale': settings['JACKET_SCALE'],
+            'jacket position': settings['JACKET_POSITION'],
+            'song name': metadata['musicTitle'][0],
+            'font scale': settings['FONT_SCALE'],
+            'name position': settings['NAME_POSITION'],
 
             'frame length': int((metadata['length'] + 5) * settings['FPS']),
 
@@ -178,6 +185,22 @@ class VideoPrefetch:
     def get_frame_info(self):
         return self.frames
 
+    def delete_skip_frame(self, frames):
+        skipped_frames = list()
+        for frame in frames:
+            skipped_frames.append(list())
+            new_frame = skipped_frames[-1]
+            for note in frame:
+                if note['type'] == 'Bar':
+                    f = note['frame'][0]
+                else:
+                    f = note['frame']
+
+                if f > self.C['skip note']:
+                    new_frame.append(note)
+
+        return skipped_frames
+
     def add_single_effect(self, frames, start_frame):
         pass
 
@@ -210,6 +233,11 @@ class VideoFrameMaker:
         self.paste_center(self.bg, self.C['width'] / 2, self.C['bottom'], game_play_line)
         bg_line_rhythm = self.img_resize(self.images['bg_line_rhythm.png'], self.C['lane scale'])
         self.paste_center(self.bg, self.C['width'] / 2, self.C['bottom'] - bg_line_rhythm.height / 2, bg_line_rhythm)
+        jacket = self.img_resize(Image.open(self.C['music jacket']),self.C['jacket scale'])
+        self.paste_center(self.bg, self.C['jacket position'][0], self.C['jacket position'][1], jacket)
+        font = ImageFont.truetype('sazanami-mincho.ttf', self.C['font scale'])
+        draw = ImageDraw.Draw(self.bg)
+        draw.text(tuple(self.C['name position']), self.C['song name'], align="left", font= font)
         self.empty_image = Image.new("RGBA", (1, 1))
 
     def work(self):
@@ -393,6 +421,10 @@ class VideoFrameMaker:
                 note['frame'][0] = self.C['position length']
             if note['frame'][1] < 0:
                 note['frame'][1] = 0
+
+            # skip correction
+            if note['frame'][1] < self.C['skip note']:
+                note['frame'][1] = self.C['skip note']
 
             tx = self.P[note['frame'][1]]['x'][note['lane'][1]]
             ty = self.P[note['frame'][1]]['y']
