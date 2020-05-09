@@ -235,7 +235,7 @@ class VideoFrameMaker:
         self.paste_center(self.bg, self.C['width'] / 2, self.C['bottom'] - bg_line_rhythm.height / 2, bg_line_rhythm)
         jacket = self.img_resize(Image.open(self.C['music jacket']),self.C['jacket scale'])
         self.paste_center(self.bg, self.C['jacket position'][0], self.C['jacket position'][1], jacket)
-        font = ImageFont.truetype('sazanami-mincho.ttf', self.C['font scale'])
+        font = ImageFont.truetype('NotoSansJP-Bold.otf', self.C['font scale'])
         draw = ImageDraw.Draw(self.bg)
         draw.text(tuple(self.C['name position']), self.C['song name'], align="left", font= font)
         self.empty_image = Image.new("RGBA", (1, 1))

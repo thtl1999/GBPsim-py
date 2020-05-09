@@ -64,6 +64,7 @@ def make_sound(settings, metadata, music_id, difficulty):
     end_time = time.time()
     print('Sound processing time:', end_time - start_time)
 
+
 def merge_video(settings, metadata, music_id, difficulty):
     print('Merge process start')
     start_time = time.time()
@@ -107,6 +108,7 @@ if __name__=='__main__':
     """
     TODO
     
+    bar line draw to quadrangle (using polygon)
     combo
     particles
     
