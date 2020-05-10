@@ -16,6 +16,10 @@
   "NOTE_SKIN_ID": "0",
   "LANE_SKIN_ID": "0",
   "NOTE_SOUND_ID": "0",
+  "COMBO_SCALE_A": 0.5,
+  "COMBO_SCALE_B": 1.5,
+  "COMBO_FRAME": 5,
+
   "JACKET_SCALE" : 1,
   "JACKET_POSITION": [260,300],
   "FONT_SCALE": 50,

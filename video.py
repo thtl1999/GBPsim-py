@@ -147,7 +147,8 @@ class VideoPrefetch:
             'SingleOff': 4,
             'Skill': 4,
             'Flick': 5,
-            'Long':6
+            'Long': 6,
+            'Combo': 7
         }
 
         frames = list()
@@ -223,7 +224,8 @@ class VideoFrameMaker:
         self.images = dict()
         image_pack_list = [
             'lane ' + self.C['lane skin id'],
-            'note ' + self.C['note skin id']
+            'note ' + self.C['note skin id'],
+            'common'
         ]
         for image_pack in image_pack_list:
             self.add_images(image_pack)
@@ -255,7 +257,7 @@ class VideoFrameMaker:
                     self.draw_bar(bg, note)
                 elif note['type'] == 'Sim':
                     self.draw_sim(bg, note)
-                else:
+                elif note['type'] in ['Single', 'SingleOff', 'Flick', 'Long', 'Skill', 'Tick']:
                     self.draw_note(bg, note)
 
             cv2_img = self.pil2cv(bg)
