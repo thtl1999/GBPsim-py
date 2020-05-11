@@ -45,6 +45,10 @@ class VideoPrefetch:
             'song name': metadata['musicTitle'][0],
             'font scale': settings['FONT_SCALE'],
             'name position': settings['NAME_POSITION'],
+            'combo scale a': settings['COMBO_SCALE_A'],
+            'combo scale b': settings['COMBO_SCALE_B'],
+            'combo frame': settings['COMBO_FRAME'],
+            'combo position': settings['COMBO_POSITION'],
 
             'frame length': int((metadata['length'] + 5) * settings['FPS']),
 
@@ -112,7 +116,14 @@ class VideoPrefetch:
     def precise_cal(self, note_time):
         return int(note_time * self.C['fps'] - self.C['position length'])
 
-
+    def add_moved_combo(self, frame, last_frame):
+        for note in last_frame:
+            if note['type'] == 'Combo':
+                if note['frame'] < self.C['combo frame']:
+                    new_combo = copy.deepcopy(note)
+                    new_combo['frame'] += 1
+                    frame.append(new_combo)
+                    break
 
     def add_moved_notes(self, frame, last_frame):
         copied_frame = copy.deepcopy(last_frame)
@@ -155,6 +166,7 @@ class VideoPrefetch:
         for _ in range(C['frame length']):
             frames.append(list())
         score_pointer = 0
+        current_combo = 0
 
         notes = json.load(open('score/' + C['song id'] + '.' + C['difficulty'] + '.json'))
 
@@ -163,6 +175,12 @@ class VideoPrefetch:
             # check last frame
             if not current_frame == 0:
                 self.add_moved_notes(frame, frames[current_frame-1])
+
+            if self.combo_increased(frames[current_frame-1]) > 0:
+                current_combo += self.combo_increased(frames[current_frame-1])
+                self.add_combo_effect(frame, current_combo)
+            else:
+                self.add_moved_combo(frame, frames[current_frame - 1])
 
             # check if new note should appear
             while score_pointer < len(notes):
@@ -201,6 +219,23 @@ class VideoPrefetch:
                     new_frame.append(note)
 
         return skipped_frames
+
+    def combo_increased(self, last_frame):
+        combo = 0
+        for note in last_frame:
+            if note['type'] in ['Single', 'SingleOff', 'Flick', 'Tick', 'Long', 'Skill']:
+                if note['frame'] == self.C['position length']:
+                    combo += 1
+        return combo
+
+    def add_combo_effect(self, frame, combo):
+        note = {
+            'type': 'Combo',
+            'frame': 0,
+            'combo': combo
+        }
+
+        frame.append(note)
 
     def add_single_effect(self, frames, start_frame):
         pass
@@ -446,3 +481,15 @@ class VideoFrameMaker:
             y = self.P[note['frame']]['y']
             s = self.P[note['frame']]['r']
             return x, y, s
+
+# class Note:
+#     def __init__(self, note_type, lane, cur_frame):
+#         self.type = note_type
+#         self.lane = lane
+#         self.cur_frame = cur_frame
+#
+#     def is_note(self):
+#         if self.type in ['Single', 'SingleOff', 'Flick', 'Tick', 'Long', 'Skill']:
+#             return True
+#         else:
+#             return False
