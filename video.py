@@ -409,6 +409,9 @@ class VideoFrameMaker:
         flick_top = self.img_resize(self.images['note_flick_top.png'], s * self.C['note size'])
         self.paste_center(bg, x, y - flicky, flick_top)
 
+    def draw_combo(self, bg, combo):
+        pass
+
     def draw_bpm(self, bg, bpms):
         pass
 
@@ -481,15 +484,3 @@ class VideoFrameMaker:
             y = self.P[note['frame']]['y']
             s = self.P[note['frame']]['r']
             return x, y, s
-
-# class Note:
-#     def __init__(self, note_type, lane, cur_frame):
-#         self.type = note_type
-#         self.lane = lane
-#         self.cur_frame = cur_frame
-#
-#     def is_note(self):
-#         if self.type in ['Single', 'SingleOff', 'Flick', 'Tick', 'Long', 'Skill']:
-#             return True
-#         else:
-#             return False
