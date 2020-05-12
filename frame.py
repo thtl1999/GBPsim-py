@@ -1,63 +1,65 @@
-import multiprocessing
-
+import json
 
 class FrameMaker:
-    def __init__(self, settings, metadata, difficulty, music_id):
-        self.C = self.define_constant(settings, metadata, difficulty, music_id)
-        self.P , self.C['position length'] = self.cal_positions(self.C)
-        self.frames = self.cal_frames(self.C, self.P)
-        self.frames = self.delete_skip_frame(self.frames)
+    def __init__(self, constants):
+        self.c = constants
+        self.npos = NotePositions(self.c)
 
-    def add_note(self, frame, note):
-        note_info = {
-            'type': note['type'],
-            'lane': note['lane'],
-        }
+    def make_frames(self):
+        frames = self.calculate_frames()
+        frames = self.sort_frames(frames)
+        frames = self.delete_skip_notes(frames)
 
-        if note['type'] == 'Bar':
-            top_frame_difference = self.precise_cal(note['time'][1]) - self.precise_cal(note['time'][0])
-            note_info['frame'] = [0, -top_frame_difference]
-        else:
-            note_info['frame'] = 0
+        return frames
 
-        frame.append(note_info)
+    def calculate_frames(self):
+        frames = list(list() for _ in range(self.c.LANE_FRAME_LENGTH))
 
-    def precise_cal(self, note_time):
-        return int(note_time * self.C['fps'] - self.C['position length'])
+        note_pointer = 0
+        current_combo = 0
 
-    def add_moved_combo(self, frame, last_frame):
-        for note in last_frame:
-            if note['type'] == 'Combo':
-                if note['frame'] < self.C['combo frame']:
-                    new_combo = copy.deepcopy(note)
-                    new_combo['frame'] += 1
-                    frame.append(new_combo)
-                    break
+        notes = json.load(open('score/' + self.c.SONG_ID + '.' + self.c.DIFFICULTY + '.json'))
 
-    def add_moved_notes(self, frame, last_frame):
-        copied_frame = copy.deepcopy(last_frame)
-        for note in copied_frame:
-            if note['type'] == 'Bar':
-                note['frame'][0] += 1
-                note['frame'][1] += 1
+        for current_frame_index in range(self.c.LANE_FRAME_LENGTH):
+            cur_frame = frames[current_frame_index]
 
-                if note['frame'][1] < self.C['position length']:
-                    frame.append(note)
-            else:
-                note['frame'] += 1
+            # check last frame
+            if not current_frame_index == 0:
+                last_frame = frames[current_frame_index - 1]
+                self.add_moved_obj(cur_frame, last_frame)
+                increased_combo = self.increased_combo(last_frame)
+                if increased_combo > 0:
+                    current_combo += increased_combo
+                    self.add_combo_effect(cur_frame, current_combo)
 
-                if note['frame'] < self.C['position length']:
-                    frame.append(note)
+            # if no more note left, just check last frame
+            if note_pointer < len(notes):
+                continue
 
-    def get_note_start_frame(self, C, note):
-        if note['type'] == 'Bar':
-            note_time = note['time'][0]
-        else:
-            note_time = note['time']
+            # check if new note should appear
+            while self.get_note_start_frame(notes[note_pointer]) == current_frame_index:
+                self.add_note(cur_frame, notes[note_pointer])
+                note_pointer += 1
 
-        return int(note_time * C['fps'] - C['position length'])
+        return frames
 
-    def cal_frames(self, C, P):
+    def add_moved_obj(self, cur_frame, last_frame):
+        for note_type in ['note', 'combo', 'effect']:
+            for note in last_frame[note_type]:
+                max_anim = None
+                if note.is_note():
+                    max_anim = self.c.COMBO_FRAMES
+                if note.is_combo():
+                    max_anim = self.c.COMBO_FRAMES
+
+                if note.get_cur_anim() < max_anim:
+                    next_note = note.get_next_note()
+                    cur_frame[note_type].append(next_note)
+
+        return
+
+
+    def sort_frames(self, frames):
         # sort order for drawing order
         sort_order = {
             'Bar': 1,
@@ -68,52 +70,14 @@ class FrameMaker:
             'Skill': 4,
             'Flick': 5,
             'Long': 6,
-            'Combo': 7
         }
 
-        frames = list()
-        for _ in range(C['frame length']):
-            frames.append(list())
-        score_pointer = 0
-        current_combo = 0
-
-        notes = json.load(open('score/' + C['song id'] + '.' + C['difficulty'] + '.json'))
-
-        for current_frame in range(C['frame length']):
-            frame = frames[current_frame]
-            # check last frame
-            if not current_frame == 0:
-                self.add_moved_notes(frame, frames[current_frame-1])
-
-            if self.combo_increased(frames[current_frame-1]) > 0:
-                current_combo += self.combo_increased(frames[current_frame-1])
-                self.add_combo_effect(frame, current_combo)
-            else:
-                self.add_moved_combo(frame, frames[current_frame - 1])
-
-            # check if new note should appear
-            while score_pointer < len(notes):
-                note_start_frame = self.get_note_start_frame(C, notes[score_pointer])
-                if note_start_frame > current_frame:
-                    break
-                else:
-                    self.add_note(frame, notes[score_pointer])
-                    score_pointer += 1
-
-        # sort note in frame for drawing order
-        sorted_frames = list()
         for frame in frames:
-            sorted_frames.append(sorted(frame, key=lambda note: sort_order[note['type']]))
+            frame['note'] = sorted(frame['note'], key=lambda note: sort_order[note.type])
 
-        return sorted_frames
+        return frames
 
-    def copy_settings(self):
-        return copy.deepcopy(self.C), copy.deepcopy(self.P)
-
-    def get_frame_info(self):
-        return self.frames
-
-    def delete_skip_frame(self, frames):
+    def delete_skip_notes(self, frames):
         skipped_frames = list()
         for frame in frames:
             skipped_frames.append(list())
@@ -129,22 +93,45 @@ class FrameMaker:
 
         return skipped_frames
 
-    def combo_increased(self, last_frame):
+    def add_note(self, frame, note):
+        top_frame_difference = 0
+        lane_ext = 0
+
+        if note['type'] == 'Bar':
+            top_frame_difference = self.time_to_frame(note['time'][1]) - self.time_to_frame(note['time'][0])
+
+        if note['type'] == 'Sim':
+            lane = note['lane'][0]
+            lane_ext = note['lane'][1]
+        else:
+            lane = note['lane']
+
+        new_note = Note(self.c, self.npos, note['type'], lane, lane_ext,
+                        cur_anim=0, cur_anim_ext=-top_frame_difference)
+        frame['note'].append(new_note)
+
+    def increased_combo(self, frame):
         combo = 0
-        for note in last_frame:
-            if note['type'] in ['Single', 'SingleOff', 'Flick', 'Tick', 'Long', 'Skill']:
-                if note['frame'] == self.C['position length']:
+        for note in frame['note']:
+            if note.is_real_note():
+                if note.get_cur_anim() == self.c.LANE_FRAME_LENGTH - 1:
                     combo += 1
         return combo
 
     def add_combo_effect(self, frame, combo):
-        note = {
-            'type': 'Combo',
-            'frame': 0,
-            'combo': combo
-        }
+        combo_note = Note(self.c, self.npos, 'Combo', combo=combo)
+        frame['combo'] = [combo_note]
 
-        frame.append(note)
+    def time_to_frame(self, note_time):
+        return int(note_time * self.c.FPS - self.c.LANE_FRAME_LENGTH)
+
+    def get_note_start_frame(self, note):
+        if note['type'] == 'Bar':
+            note_time = note['time'][0]
+        else:
+            note_time = note['time']
+
+        return self.time_to_frame(note_time)
 
     def add_single_effect(self, frames, start_frame):
         pass
@@ -258,39 +245,22 @@ class Constants:
         self.VIDEO_NAME = str(self.SONG_ID) + self.DIFFICULTY + '.' + self.OUTPUT_EXT
 
         self.THREADS = settings['THREADS']
-        if self.THREADS == 0:
-            self.THREADS = multiprocessing.cpu_count()
 
         self.LANE_FRAME_LENGTH = None
 
 
 class Note:
-    def __init__(self, constants, note_positions, note_data, cur_anim):
+    def __init__(self, constants, note_positions, note_type, note_lane=0, note_lane_ext=0,
+                 cur_anim=0, cur_anim_ext=0, combo=0, seed=0):
         self.c = constants
         self.npos = note_positions
-        self.type = note_data['type']
-        self.lane = note_data['lane']
+        self.type = note_type
+        self.lane = note_lane
+        self.lane_ext = note_lane_ext
         self.cur_anim = cur_anim
-
-    def next_note(self, frame):
-        note_data = {
-            'type': self.type,
-            'lane': self.lane
-        }
-
-        if self.is_note():
-            max_anim = self.c.LANE_FRAME_LENGTH
-        elif self.is_combo():
-            max_anim = self.c.COMBO_FRAMES
-
-        if self.type == 'Bar':
-            cur_anim = [self.cur_anim[0] + 1, self.cur_anim[1] + 1]
-        else:
-            cur_anim = self.cur_anim + 1
-
-        next_note = Note(self.c, self.npos, note_data, cur_anim)
-        return next_note
-
+        self.cur_anim_ext = cur_anim_ext
+        self.combo = combo
+        self.seed = seed
 
     def is_real_note(self):
         if self.type in ['Single', 'SingleOff', 'Flick', 'Tick', 'Long', 'Skill']:
@@ -321,6 +291,17 @@ class Note:
             return True
         else:
             return False
+
+    def get_cur_anim(self):
+        if self.type == 'Bar':
+            return self.cur_anim_ext
+        else:
+            return self.cur_anim
+
+    def get_next_note(self):
+        next_note = Note(self.c, self.npos, self.type, self.lane, self.lane_ext,
+                         self.cur_anim + 1, self.cur_anim_ext + 1, self.combo, self.seed)
+        return next_note
 
     def get_pos(self):
         if not self.is_note():

@@ -4,12 +4,6 @@ import numpy as np
 import cv2
 import json
 import math
-import copy
-import multiprocessing
-
-
-
-
 
 class VideoFrameMaker:
     def __init__(self, settings, note_frames, thread_id):

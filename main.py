@@ -1,12 +1,14 @@
-import video
-import sound
-import merge
+
 import json
 import time
 import os
 import numpy as np
 from pydub import AudioSegment
 import multiprocessing
+import frame
+import video
+import sound
+import merge
 
 
 def import_settings():
@@ -22,17 +24,19 @@ def split_data(data, num_of_threads):
     return np.array_split(data, num_of_threads)
 
 
-def make_video(settings, metadata, music_id, difficulty_id):
+def make_video(constants):
     print('Video process start with', settings['THREAD'], 'processes')
     start_time = time.time()
 
-    video_prefetcher = video.VideoPrefetch(settings, metadata, difficulty_id, music_id)
-    frame_list = video_prefetcher.get_frame_info()
-    distributed_frames = split_data(frame_list, settings['THREAD'])
+    print('Parse score')
+    frame_maker = frame.FrameMaker(constants)
+    frame_list = frame_maker.make_frames()
+    distributed_frames = split_data(frame_list, constants.THREADS)
     threads = list()
 
+    print('Create processes')
     for i in range(settings['THREAD']):
-        maker = video.VideoFrameMaker(video_prefetcher.copy_settings(), distributed_frames[i], i)
+        maker = video.VideoFrameMaker(constants, distributed_frames[i], i)
         p = multiprocessing.Process(target=maker.work)
         threads.append(p)
         p.start()
@@ -90,19 +94,21 @@ if __name__=='__main__':
     3-digit number is required only for bgm sound file name
     which can find in song metadata
     """
-    music_id = '128'
+    song_id = '128'
 
-    metadata = json.load(open('metadata/' + music_id + '.json', encoding='utf-8'))
+    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
 
     music = AudioSegment.from_mp3('bgm/' + metadata['bgmId'] + ".mp3")
 
     difficulty_id = '3'
 
-    make_video(settings, metadata, music_id, difficulty_id)
+    constants = frame.Constants(settings, metadata, difficulty_id, song_id)
 
-    make_sound(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
+    make_video(constants)
 
-    merge_video(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
+    make_sound(constants)
+
+    merge_video(constants)
 
 
     """
