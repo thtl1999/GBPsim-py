@@ -2,17 +2,14 @@ from pydub import AudioSegment
 import moviepy.editor as mp
 
 class Merge_class:
-    def __init__(self, settings, video_name, sound_name, bgm_name):
-        self.settings = settings
-        self.video_name = video_name
-        self.sound_name = sound_name
-        self.bgm_name = bgm_name
+    def __init__(self, constants):
+        self.c = constants
 
         self.videos = list()
         self.sounds = list()
-        for i in range(settings['THREAD']):
-            self.videos.append('video/' + str(i) + 'th ' + video_name + '.' + settings['VIDEO_EXTENSION'])
-            self.sounds.append('video/' + str(i) + 'th ' + sound_name + '.wav')
+        for i in range(self.c.THREADS):
+            self.videos.append('video/frag/' + str(i) + '.' + self.c.OPENCV_VIDEO_EXT)
+            self.sounds.append('video/frag/' + str(i) + '.wav')
 
     def merge(self):
 

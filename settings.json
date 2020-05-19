@@ -27,7 +27,6 @@
   "FONT_SIZE": 50,
   "SONG_NAME_POSITION": [60,30],
 
-
   "THREADS": 0,
 
   "OPENCV_CODEC": "XVID",
@@ -37,6 +36,8 @@
   "OUTPUT_EXT": "avi",
 
   "SOUND_DELAY": 0.15,
+
+  "BACKGROUND_VIDEO": false,
 
   "BAR_EDGE_COLOR": [75, 226, 111, 151],
   "BAR_CENTER_COLOR": [76, 228, 112, 77],

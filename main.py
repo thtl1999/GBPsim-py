@@ -48,16 +48,16 @@ def make_video(constants):
     print('Video processing time:', end_time - start_time)
 
 
-def make_sound(settings, metadata, music_id, difficulty):
-    print('Sound process start with', settings['THREAD'], 'processes')
+def make_sound(constants):
+    print('Sound process start with', constants.THREADS, 'processes')
     start_time = time.time()
 
-    notes = json.load(open('score/' + music_id + '.' + difficulty + '.json'))
+    notes = json.load(open('score/' + constants.SONG_ID + '.' + constants.DIFFICULTY + '.json'))
     distributed_notes = split_data(notes, settings['THREAD'])
     threads = list()
 
-    for i in range(settings['THREAD']):
-        maker = sound.SoundMaker(settings, music_id, difficulty, metadata, distributed_notes[i], i)
+    for i in range(constants.THREADS):
+        maker = sound.SoundMaker(constants, distributed_notes[i], str(i))
         p = multiprocessing.Process(target=maker.work)
         threads.append(p)
         p.start()
@@ -69,18 +69,15 @@ def make_sound(settings, metadata, music_id, difficulty):
     print('Sound processing time:', end_time - start_time)
 
 
-def merge_video(settings, metadata, music_id, difficulty):
+def merge_video(constants):
     print('Merge process start')
     start_time = time.time()
 
-    sound_name = str(music_id) + difficulty
-    video_name = str(music_id) + difficulty
-    bgm_name = metadata['bgmId']
-
-    merge_class = merge.Merge_class(settings, video_name, sound_name, bgm_name)
+    merge_class = merge.Merge_class(constants)
     merge_class.merge()
 
     # delete middle files
+    pass
 
     end_time = time.time()
     print('Merge processing time:', end_time - start_time)

@@ -83,12 +83,7 @@ class FrameMaker:
             skipped_frames.append(list())
             new_frame = skipped_frames[-1]
             for note in frame:
-                if note['type'] == 'Bar':
-                    f = note['frame'][0]
-                else:
-                    f = note['frame']
-
-                if f > self.C['skip note']:
+                if note.get_cur_anim() > self.c.SKIP_NOTE:
                     new_frame.append(note)
 
         return skipped_frames
@@ -132,6 +127,9 @@ class FrameMaker:
             note_time = note['time']
 
         return self.time_to_frame(note_time)
+
+    def get_bpm(self, seq):
+        pass
 
     def add_single_effect(self, frames, start_frame):
         pass
@@ -246,10 +244,20 @@ class Constants:
 
         self.THREADS = settings['THREADS']
 
+        self.BACKGROUND_VIDEO = settings['BACKGROUND_VIDEO']
+
         self.LANE_FRAME_LENGTH = None
 
 
 class Note:
+    TYPE_DICT = {
+        'Single': 'note_normal_',
+        'Long': 'note_long_',
+        'SingleOff': 'note_normal_gray_',
+        'Skill': 'note_skill_',
+        'Flick': 'note_flick_'
+    }
+
     def __init__(self, constants, note_positions, note_type, note_lane=0, note_lane_ext=0,
                  cur_anim=0, cur_anim_ext=0, combo=0, seed=0):
         self.c = constants
@@ -303,7 +311,62 @@ class Note:
                          self.cur_anim + 1, self.cur_anim_ext + 1, self.combo, self.seed)
         return next_note
 
+    def copy_note(self):
+        note = Note(self.c, self.npos, self.type, self.lane, self.lane_ext,
+                         self.cur_anim, self.cur_anim_ext, self.combo, self.seed)
+        return note
+
+    def get_sprite_name(self):
+        if not self.is_real_note():
+            print(self.type, 'is not a real note')
+            exit(2)
+
+        if self.type == 'Tick':
+            return 'note_slide_among.png'
+        else:
+            return self.TYPE_DICT[self.type] + str(self.lane - 1) + '.png'
+
     def get_pos(self):
         if not self.is_note():
             print(self.type, 'is not a note')
             exit(1)
+
+        if self.type == 'Bar':
+            distance = 0
+
+            # correction for note position
+            if self.cur_anim > self.c.LANE_FRAME_LENGTH:
+                total_bottom_distance = (self.lane_ext - self.lane)*self.c.LANE_SPACE_BOTTOM
+                distance_per_frame = total_bottom_distance / (self.cur_anim - self.cur_anim_ext)
+                bottom_progress = self.cur_anim - self.c.LANE_FRAME_LENGTH
+                distance = bottom_progress * distance_per_frame
+                self.cur_anim = self.c.LANE_FRAME_LENGTH
+            if self.cur_anim_ext < self.c.SKIP_NOTE:
+                self.cur_anim_ext = self.c.SKIP_NOTE
+
+            tx = self.npos.x[self.cur_anim_ext][self.lane_ext]
+            ty = self.npos.y[self.cur_anim_ext]
+            by = self.npos.y[self.cur_anim]
+            ts = self.npos.r[self.cur_anim_ext]
+            bs = self.npos.r[self.cur_anim]
+            bx = self.npos.x[self.cur_anim][self.lane_ext] + distance
+            return tx, ty, bx, by, ts, bs
+
+        elif self.type == 'Sim':
+            x1 = self.npos.x[self.cur_anim][self.lane]
+            x2 = self.npos.x[self.cur_anim][self.lane_ext]
+            y = self.npos.y[self.cur_anim]
+            s = self.npos.r[self.cur_anim]
+            return x1, x2, y, s
+        else:
+            x = self.npos.x[self.cur_anim][self.lane]
+            y = self.npos.y[self.cur_anim]
+            s = self.npos.r[self.cur_anim]
+            return x, y, s
+
+
+    def get_combo(self):
+        pass
+
+    def get_effect(self):
+        pass
