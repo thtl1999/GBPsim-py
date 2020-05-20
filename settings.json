@@ -17,8 +17,8 @@
   "NOTE_SKIN_ID": "0",
   "LANE_SKIN_ID": "0",
   "NOTE_SOUND_ID": "0",
-  "COMBO_SCALE_A": 0.5,
-  "COMBO_SCALE_B": 1.5,
+  "COMBO_SCALE_A": 0.7,
+  "COMBO_SCALE_B": 1.3,
   "COMBO_FRAMES": 10,
   "COMBO_POSITION": [1670,370],
 
@@ -29,13 +29,13 @@
 
   "THREADS": 0,
 
-  "OPENCV_CODEC": "XVID",
+  "OPENCV_CODEC": "DIVX",
   "OPENCV_VIDEO_EXT": "avi",
-  "FFMPEG_CODEC": "libx264",
+  "FFMPEG_CODEC": "mpeg4",
   "OUTPUT_BITRATE": "9000k",
   "OUTPUT_EXT": "avi",
 
-  "SOUND_DELAY": 0.15,
+  "SOUND_DELAY": 0,
 
   "BACKGROUND_VIDEO": false,
 

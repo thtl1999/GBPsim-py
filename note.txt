@@ -28,3 +28,15 @@ note_positions
 .x[frame][lane]
 .y[frame]
 .r[frame]
+
+opencv codec test
+xvid avi 72
+divx avi 68
+fmp4 avi 69
+mjpg avi 71
+yv12 avi 66 error and size
+x264 not working
+
+ffmpeg codec test
+libx264 avi 77
+mpeg4 avi 69

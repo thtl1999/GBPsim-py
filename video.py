@@ -72,8 +72,7 @@ class VideoFrameMaker:
 
             # draw combo
             for combo in frame['combo']:
-                pass
-                # self.draw_combo(bg, combo)
+                self.draw_combo(bg, combo)
 
             #draw effect
             for effect in frame['effect']:
@@ -109,11 +108,47 @@ class VideoFrameMaker:
         base.paste(img, (int(x - w / 2), int(y - h / 2)), img)
 
     def paste_abs(self, base, x, y, img):
-        base.paste(img, (x, y), img)
+        base.paste(img, (int(x), int(y)), img)
 
     def draw_combo(self, bg, combo):
         x, y, anim, combo_value = combo.get_pos()
+        combo_image = self.create_combo_image(combo_value)
 
+        # Scale overlay
+        combo_frames = self.c.COMBO_FRAMES
+        scale_a = self.c.COMBO_SCALE_A
+        scale_b = self.c.COMBO_SCALE_B
+        half_frame = combo_frames/2
+
+        if anim < half_frame:
+            scale = scale_a + (scale_b - scale_a)/half_frame * anim
+        elif anim < combo_frames:
+            scale = scale_b - (scale_b - 1)/half_frame * (anim - half_frame)
+        else:
+            scale = 1
+
+        combo_image = self.img_resize(combo_image, scale)
+        self.paste_center(bg, x, y, combo_image)
+
+    def create_combo_image(self, combo_value):
+        numbers = [int(digit) for digit in str(combo_value)] # [3,4,2]
+        number_sprites = list()
+        for i in range(10):
+            number_sprites.append(self.images[str(i)+'.png'])
+        number_sprite_width, number_sprite_height = number_sprites[0].size
+        combo_sprite = self.images['combo.png']
+        combo_sprite_width, combo_sprite_height = combo_sprite.size
+        width = max(number_sprite_width*len(numbers), combo_sprite_width)
+        height = number_sprite_height + combo_sprite_height
+
+        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        numbers_width = number_sprite_width * len(numbers)
+        numbers_start_x = (width - numbers_width)/2
+        for i, number in enumerate(numbers):
+            self.paste_abs(overlay, numbers_start_x + i*number_sprite_width, 0, number_sprites[number])
+        self.paste_center(overlay, width/2, number_sprite_height + combo_sprite_height/2, combo_sprite)
+
+        return overlay
 
     def draw_bar(self, bg, note):
         self.draw_gradient(bg, note)

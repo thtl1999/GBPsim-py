@@ -62,7 +62,8 @@ class FrameMaker:
                 if note.is_note():
                     max_anim = self.c.LANE_FRAME_LENGTH
                 if note.is_combo():
-                    max_anim = self.c.COMBO_FRAMES
+                    # max_anim = self.c.COMBO_FRAMES
+                    max_anim = 999999999
 
                 if note.get_cur_anim() < max_anim:
                     next_note = note.get_next_note()
