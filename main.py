@@ -1,38 +1,48 @@
-import video
-import sound
-import merge
+
 import json
 import time
+import shutil
 import os
 import numpy as np
 from pydub import AudioSegment
 import multiprocessing
+import frame
+import video
+import sound
+import merge
 
 
 def import_settings():
     settings = json.load(open('settings.json'))
 
-    if settings['THREAD'] == 0:
-        settings['THREAD'] = multiprocessing.cpu_count()
+    if settings['THREADS'] == 0:
+        settings['THREADS'] = multiprocessing.cpu_count()
 
     return settings
+
+def init_program():
+    if os.path.isdir('video/frag'):
+        shutil.rmtree('video/frag')
 
 
 def split_data(data, num_of_threads):
     return np.array_split(data, num_of_threads)
 
 
-def make_video(settings, metadata, music_id, difficulty_id):
-    print('Video process start with', settings['THREAD'], 'processes')
+def make_video(constants):
+    print('Video process start with', constants.THREADS, 'processes')
     start_time = time.time()
 
-    video_prefetcher = video.VideoPrefetch(settings, metadata, difficulty_id, music_id)
-    frame_list = video_prefetcher.get_frame_info()
-    distributed_frames = split_data(frame_list, settings['THREAD'])
+    print('Parse score')
+    frame_maker = frame.FrameMaker(constants)
+    frame_list = frame_maker.make_frames()
+    distributed_frames = split_data(frame_list, constants.THREADS)
     threads = list()
 
-    for i in range(settings['THREAD']):
-        maker = video.VideoFrameMaker(video_prefetcher.copy_settings(), distributed_frames[i], i)
+    print('Create processes')
+    os.mkdir('video/frag')
+    for i in range(constants.THREADS):
+        maker = video.VideoFrameMaker(constants, distributed_frames[i], i)
         p = multiprocessing.Process(target=maker.work)
         threads.append(p)
         p.start()
@@ -44,16 +54,16 @@ def make_video(settings, metadata, music_id, difficulty_id):
     print('Video processing time:', end_time - start_time)
 
 
-def make_sound(settings, metadata, music_id, difficulty):
-    print('Sound process start with', settings['THREAD'], 'processes')
+def make_sound(constants):
+    print('Sound process start with', constants.THREADS, 'processes')
     start_time = time.time()
 
-    notes = json.load(open('score/' + music_id + '.' + difficulty + '.json'))
-    distributed_notes = split_data(notes, settings['THREAD'])
+    notes = json.load(open('score/' + constants.SONG_ID + '.' + constants.DIFFICULTY + '.json'))
+    distributed_notes = split_data(notes, constants.THREADS)
     threads = list()
 
-    for i in range(settings['THREAD']):
-        maker = sound.SoundMaker(settings, music_id, difficulty, metadata, distributed_notes[i], i)
+    for i in range(constants.THREADS):
+        maker = sound.SoundMaker(constants, distributed_notes[i], str(i))
         p = multiprocessing.Process(target=maker.work)
         threads.append(p)
         p.start()
@@ -65,18 +75,15 @@ def make_sound(settings, metadata, music_id, difficulty):
     print('Sound processing time:', end_time - start_time)
 
 
-def merge_video(settings, metadata, music_id, difficulty):
+def merge_video(constants):
     print('Merge process start')
     start_time = time.time()
 
-    sound_name = str(music_id) + difficulty
-    video_name = str(music_id) + difficulty
-    bgm_name = metadata['bgmId']
-
-    merge_class = merge.Merge_class(settings, video_name, sound_name, bgm_name)
+    merge_class = merge.Merge_class(constants)
     merge_class.merge()
 
     # delete middle files
+    shutil.rmtree('video/frag')
 
     end_time = time.time()
     print('Merge processing time:', end_time - start_time)
@@ -90,19 +97,23 @@ if __name__=='__main__':
     3-digit number is required only for bgm sound file name
     which can find in song metadata
     """
-    music_id = '128'
+    song_id = '128'
 
-    metadata = json.load(open('metadata/' + music_id + '.json', encoding='utf-8'))
+    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
 
     music = AudioSegment.from_mp3('bgm/' + metadata['bgmId'] + ".mp3")
 
     difficulty_id = '3'
 
-    make_video(settings, metadata, music_id, difficulty_id)
+    constants = frame.Constants(settings, metadata, difficulty_id, song_id)
 
-    make_sound(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
+    init_program()
 
-    merge_video(settings, metadata, music_id, settings['DIFFICULTY'][difficulty_id])
+    make_video(constants)
+
+    make_sound(constants)
+
+    merge_video(constants)
 
 
     """

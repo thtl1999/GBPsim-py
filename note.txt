@@ -3,3 +3,28 @@ combo
 012345 0.5
 678910 1.5
 0?
+
+frame = {
+    note: [
+        {
+            get_pos()
+        }
+    ],
+
+    combo: [{
+        get_combo()
+    }],
+
+    effect: [
+
+    ],
+
+    seq: int,
+    bpm: number
+
+}
+
+note_positions
+.x[frame][lane]
+.y[frame]
+.r[frame]
