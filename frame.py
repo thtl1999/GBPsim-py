@@ -8,20 +8,31 @@ class FrameMaker:
     def make_frames(self):
         frames = self.calculate_frames()
         frames = self.sort_frames(frames)
-        frames = self.delete_skip_notes(frames)
-
         return frames
 
-    def calculate_frames(self):
-        frames = list(list() for _ in range(self.c.LANE_FRAME_LENGTH))
+    def get_primitive_frame(self):
+        primitive_frame = {
+            'note': list(),
+            'combo': list(),
+            'effect': list(),
 
+            'seq': None,
+            'bpm': None
+        }
+        return primitive_frame
+
+    def calculate_frames(self):
+        frames = list(self.get_primitive_frame() for _ in range(self.c.SONG_FRAME_LENGTH))
         note_pointer = 0
         current_combo = 0
 
         notes = json.load(open('score/' + self.c.SONG_ID + '.' + self.c.DIFFICULTY + '.json'))
 
-        for current_frame_index in range(self.c.LANE_FRAME_LENGTH):
+        for current_frame_index in range(self.c.SONG_FRAME_LENGTH):
             cur_frame = frames[current_frame_index]
+
+            cur_frame['seq'] = current_frame_index
+            cur_frame['bpm'] = self.get_bpm(current_frame_index)
 
             # check last frame
             if not current_frame_index == 0:
@@ -32,14 +43,15 @@ class FrameMaker:
                     current_combo += increased_combo
                     self.add_combo_effect(cur_frame, current_combo)
 
-            # if no more note left, just check last frame
-            if note_pointer < len(notes):
-                continue
 
-            # check if new note should appear
-            while self.get_note_start_frame(notes[note_pointer]) == current_frame_index:
-                self.add_note(cur_frame, notes[note_pointer])
-                note_pointer += 1
+            # if no more note left, just check last frame
+            while note_pointer < len(notes):
+                # check if new note should appear
+                if self.get_note_start_frame(notes[note_pointer]) == current_frame_index:
+                    self.add_note(cur_frame, notes[note_pointer])
+                    note_pointer += 1
+                else:
+                    break
 
         return frames
 
@@ -48,7 +60,7 @@ class FrameMaker:
             for note in last_frame[note_type]:
                 max_anim = None
                 if note.is_note():
-                    max_anim = self.c.COMBO_FRAMES
+                    max_anim = self.c.LANE_FRAME_LENGTH
                 if note.is_combo():
                     max_anim = self.c.COMBO_FRAMES
 
@@ -77,25 +89,15 @@ class FrameMaker:
 
         return frames
 
-    def delete_skip_notes(self, frames):
-        skipped_frames = list()
-        for frame in frames:
-            skipped_frames.append(list())
-            new_frame = skipped_frames[-1]
-            for note in frame:
-                if note.get_cur_anim() > self.c.SKIP_NOTE:
-                    new_frame.append(note)
-
-        return skipped_frames
-
     def add_note(self, frame, note):
         top_frame_difference = 0
         lane_ext = 0
 
         if note['type'] == 'Bar':
             top_frame_difference = self.time_to_frame(note['time'][1]) - self.time_to_frame(note['time'][0])
-
-        if note['type'] == 'Sim':
+            lane = note['lane'][0]
+            lane_ext = note['lane'][1]
+        elif note['type'] == 'Sim':
             lane = note['lane'][0]
             lane_ext = note['lane'][1]
         else:
@@ -129,7 +131,7 @@ class FrameMaker:
         return self.time_to_frame(note_time)
 
     def get_bpm(self, seq):
-        pass
+        return 0
 
     def add_single_effect(self, frames, start_frame):
         pass
@@ -199,6 +201,8 @@ class Constants:
         self.BPMS = metadata['bpm'][self.DIFFICULTY_ID]
         self.SONG_LENGTH = metadata['length']
         self.SONG_NAME = metadata['musicTitle'][0]
+        self.MUSIC_FILE_NAME = metadata['bgmId']
+
 
         self.WIDTH = settings['WIDTH']
         self.HEIGHT = settings['HEIGHT']
@@ -216,6 +220,7 @@ class Constants:
         self.FLICK_FRAMES = settings['FLICK_FRAMES']
         self.NOTE_SKIN_ID = settings['NOTE_SKIN_ID']
         self.LANE_SKIN_ID = settings['LANE_SKIN_ID']
+        self.NOTE_SOUND_ID = settings['NOTE_SOUND_ID']
 
         self.SONG_JACKET = 'jacket/' + self.SONG_ID + '/jacket.png'
         self.JACKET_SCALE = settings['JACKET_SCALE']
@@ -243,8 +248,8 @@ class Constants:
         self.VIDEO_NAME = str(self.SONG_ID) + self.DIFFICULTY + '.' + self.OUTPUT_EXT
 
         self.THREADS = settings['THREADS']
-
         self.BACKGROUND_VIDEO = settings['BACKGROUND_VIDEO']
+        self.SOUND_DELAY = settings['SOUND_DELAY']
 
         self.LANE_FRAME_LENGTH = None
 
@@ -327,46 +332,46 @@ class Note:
             return self.TYPE_DICT[self.type] + str(self.lane - 1) + '.png'
 
     def get_pos(self):
-        if not self.is_note():
-            print(self.type, 'is not a note')
-            exit(1)
+        if self.is_note():
+            if self.type == 'Bar':
+                distance = 0
 
-        if self.type == 'Bar':
-            distance = 0
+                # correction for note position
+                if self.cur_anim > self.c.LANE_FRAME_LENGTH:
+                    total_bottom_distance = (self.lane_ext - self.lane)*self.c.LANE_SPACE_BOTTOM
+                    distance_per_frame = total_bottom_distance / (self.cur_anim - self.cur_anim_ext)
+                    bottom_progress = self.cur_anim - self.c.LANE_FRAME_LENGTH
+                    distance = bottom_progress * distance_per_frame
+                    self.cur_anim = self.c.LANE_FRAME_LENGTH
+                if self.cur_anim_ext < self.c.SKIP_NOTE:
+                    self.cur_anim_ext = self.c.SKIP_NOTE
 
-            # correction for note position
-            if self.cur_anim > self.c.LANE_FRAME_LENGTH:
-                total_bottom_distance = (self.lane_ext - self.lane)*self.c.LANE_SPACE_BOTTOM
-                distance_per_frame = total_bottom_distance / (self.cur_anim - self.cur_anim_ext)
-                bottom_progress = self.cur_anim - self.c.LANE_FRAME_LENGTH
-                distance = bottom_progress * distance_per_frame
-                self.cur_anim = self.c.LANE_FRAME_LENGTH
-            if self.cur_anim_ext < self.c.SKIP_NOTE:
-                self.cur_anim_ext = self.c.SKIP_NOTE
+                tx = self.npos.x[self.cur_anim_ext][self.lane_ext]
+                ty = self.npos.y[self.cur_anim_ext]
+                by = self.npos.y[self.cur_anim]
+                ts = self.npos.r[self.cur_anim_ext]
+                bs = self.npos.r[self.cur_anim]
+                bx = self.npos.x[self.cur_anim][self.lane] + distance
+                return tx, ty, bx, by, ts, bs
 
-            tx = self.npos.x[self.cur_anim_ext][self.lane_ext]
-            ty = self.npos.y[self.cur_anim_ext]
-            by = self.npos.y[self.cur_anim]
-            ts = self.npos.r[self.cur_anim_ext]
-            bs = self.npos.r[self.cur_anim]
-            bx = self.npos.x[self.cur_anim][self.lane_ext] + distance
-            return tx, ty, bx, by, ts, bs
+            elif self.type == 'Sim':
+                x1 = self.npos.x[self.cur_anim][self.lane]
+                x2 = self.npos.x[self.cur_anim][self.lane_ext]
+                y = self.npos.y[self.cur_anim]
+                s = self.npos.r[self.cur_anim]
+                return x1, x2, y, s
+            else:
+                x = self.npos.x[self.cur_anim][self.lane]
+                y = self.npos.y[self.cur_anim]
+                s = self.npos.r[self.cur_anim]
+                return x, y, s
 
-        elif self.type == 'Sim':
-            x1 = self.npos.x[self.cur_anim][self.lane]
-            x2 = self.npos.x[self.cur_anim][self.lane_ext]
-            y = self.npos.y[self.cur_anim]
-            s = self.npos.r[self.cur_anim]
-            return x1, x2, y, s
-        else:
-            x = self.npos.x[self.cur_anim][self.lane]
-            y = self.npos.y[self.cur_anim]
-            s = self.npos.r[self.cur_anim]
-            return x, y, s
-
-
-    def get_combo(self):
-        pass
+        elif self.is_combo():
+            x = self.c.COMBO_POSITION[0]
+            y = self.c.COMBO_POSITION[1]
+            anim = self.get_cur_anim()
+            combo_value = self.combo
+            return x, y, anim, combo_value
 
     def get_effect(self):
         pass

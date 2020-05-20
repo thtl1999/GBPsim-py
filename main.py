@@ -1,6 +1,7 @@
 
 import json
 import time
+import shutil
 import os
 import numpy as np
 from pydub import AudioSegment
@@ -14,10 +15,14 @@ import merge
 def import_settings():
     settings = json.load(open('settings.json'))
 
-    if settings['THREAD'] == 0:
-        settings['THREAD'] = multiprocessing.cpu_count()
+    if settings['THREADS'] == 0:
+        settings['THREADS'] = multiprocessing.cpu_count()
 
     return settings
+
+def init_program():
+    if os.path.isdir('video/frag'):
+        shutil.rmtree('video/frag')
 
 
 def split_data(data, num_of_threads):
@@ -25,7 +30,7 @@ def split_data(data, num_of_threads):
 
 
 def make_video(constants):
-    print('Video process start with', settings['THREAD'], 'processes')
+    print('Video process start with', constants.THREADS, 'processes')
     start_time = time.time()
 
     print('Parse score')
@@ -35,7 +40,8 @@ def make_video(constants):
     threads = list()
 
     print('Create processes')
-    for i in range(settings['THREAD']):
+    os.mkdir('video/frag')
+    for i in range(constants.THREADS):
         maker = video.VideoFrameMaker(constants, distributed_frames[i], i)
         p = multiprocessing.Process(target=maker.work)
         threads.append(p)
@@ -53,7 +59,7 @@ def make_sound(constants):
     start_time = time.time()
 
     notes = json.load(open('score/' + constants.SONG_ID + '.' + constants.DIFFICULTY + '.json'))
-    distributed_notes = split_data(notes, settings['THREAD'])
+    distributed_notes = split_data(notes, constants.THREADS)
     threads = list()
 
     for i in range(constants.THREADS):
@@ -77,7 +83,7 @@ def merge_video(constants):
     merge_class.merge()
 
     # delete middle files
-    pass
+    shutil.rmtree('video/frag')
 
     end_time = time.time()
     print('Merge processing time:', end_time - start_time)
@@ -100,6 +106,8 @@ if __name__=='__main__':
     difficulty_id = '3'
 
     constants = frame.Constants(settings, metadata, difficulty_id, song_id)
+
+    init_program()
 
     make_video(constants)
 

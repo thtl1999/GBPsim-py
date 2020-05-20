@@ -56,6 +56,10 @@ class VideoFrameMaker:
 
             # draw notes
             for note in frame['note']:
+                # Skip if the position is smaller than skip value
+                if note.cur_anim < self.c.SKIP_NOTE:
+                    continue
+
                 note_type = note.type
                 if note_type == 'Bar':
                     self.draw_bar(bg, note)
@@ -69,6 +73,7 @@ class VideoFrameMaker:
             # draw combo
             for combo in frame['combo']:
                 pass
+                # self.draw_combo(bg, combo)
 
             #draw effect
             for effect in frame['effect']:
@@ -106,11 +111,15 @@ class VideoFrameMaker:
     def paste_abs(self, base, x, y, img):
         base.paste(img, (x, y), img)
 
+    def draw_combo(self, bg, combo):
+        x, y, anim, combo_value = combo.get_pos()
+
+
     def draw_bar(self, bg, note):
         self.draw_gradient(bg, note)
 
         # draw long note sprite when current animation is below bottom
-        if note.get_cur_anim() > self.c.LANE_FRAME_LENGTH:
+        if note.cur_anim > self.c.LANE_FRAME_LENGTH:
             self.draw_fake_long(bg, note)
 
     def draw_gradient(self, bg, note):
@@ -175,7 +184,7 @@ class VideoFrameMaker:
         pass
 
     def get_note_sprite(self, note):
-        sprite_name = note.get_sprite_name
+        sprite_name = note.get_sprite_name()
         img = self.images[sprite_name]
         x, y, s = note.get_pos()
         return self.img_resize(img, s * self.c.NOTE_SCALE)
