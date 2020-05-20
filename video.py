@@ -207,7 +207,3 @@ class VideoFrameMaker:
         else:
             # .resize() method returns new resized image
             return img.resize((sim_width, sim_height))
-
-
-
-
