@@ -20,24 +20,37 @@ class VideoFrameMaker:
         for image_pack in image_pack_list:
             self.add_images(image_pack)
 
-        self.bg = self.make_static_bg()
+
         self.empty_image = Image.new("RGBA", (1, 1))
+
+    def paste_bg_components(self, bg):
+        self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y, self.game_play_line)
+        self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y - self.bg_line_rhythm.height / 2, self.bg_line_rhythm)
+        self.paste_center(bg, self.c.JACKET_POSITION[0], self.c.JACKET_POSITION[1], self.jacket)
+        draw = ImageDraw.Draw(bg)
+        draw.text(tuple(self.c.SONG_NAME_POSITION), self.c.SONG_NAME, align="left", font=self.font)
 
     def make_static_bg(self):
         bg = Image.open('assets/bgs.png').convert('RGB').resize((self.c.WIDTH, self.c.HEIGHT))
-        game_play_line = self.img_resize(self.images['game_play_line.png'], self.c.LANE_SCALE)
-        self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y, game_play_line)
-        bg_line_rhythm = self.img_resize(self.images['bg_line_rhythm.png'], self.c.LANE_SCALE)
-        self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y - bg_line_rhythm.height / 2, bg_line_rhythm)
-        jacket = self.img_resize(Image.open(self.c.SONG_JACKET), self.c.JACKET_SCALE)
-        self.paste_center(bg, self.c.JACKET_POSITION[0], self.c.JACKET_POSITION[1], jacket)
-        font = ImageFont.truetype('NotoSansJP-Bold.otf', self.c.FONT_SIZE)
-        draw = ImageDraw.Draw(bg)
-        draw.text(tuple(self.c.SONG_NAME_POSITION), self.c.SONG_NAME, align="left", font=font)
+        self.paste_bg_components(bg)
         return bg
 
     def make_video_bg(self, frame_seq):
-        return self.bg.copy()
+        video = cv2.VideoCapture('mv/' + self.c.SONG_ID + '.mp4')
+        video_fps = video.get(cv2.CAP_PROP_FPS)
+        video_frame_seq = int(frame_seq/self.c.FPS * video_fps)
+
+        if not video_frame_seq < video.get(cv2.CAP_PROP_FRAME_COUNT):
+            video_frame_seq = video.get(cv2.CAP_PROP_FRAME_COUNT) - 1
+
+        video.set(cv2.CAP_PROP_POS_FRAMES, video_frame_seq)
+        ret, cv_image = video.read()
+
+        bg = self.cv2pil(cv_image)
+        bg = bg.resize((self.c.WIDTH, self.c.HEIGHT))
+        self.paste_bg_components(bg)
+
+        return bg
 
     def work(self):
 
@@ -46,6 +59,12 @@ class VideoFrameMaker:
         video_size = (self.c.WIDTH, self.c.HEIGHT)
         video_name = 'video/frag/' + str(self.thread_id) + '.' + self.c.OPENCV_VIDEO_EXT
         video = cv2.VideoWriter(video_name, fourcc, self.c.FPS, video_size)
+
+        self.game_play_line = self.img_resize(self.images['game_play_line.png'], self.c.LANE_SCALE)
+        self.bg_line_rhythm = self.img_resize(self.images['bg_line_rhythm.png'], self.c.LANE_SCALE)
+        self.jacket = self.img_resize(Image.open(self.c.SONG_JACKET), self.c.JACKET_SCALE)
+        self.font = ImageFont.truetype('NotoSansJP-Bold.otf', self.c.FONT_SIZE)
+        self.bg = self.make_static_bg()
 
         for frame in self.note_frames:
             # make background
@@ -89,6 +108,10 @@ class VideoFrameMaker:
             return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
         elif pil_image.mode == 'RGBA':
             return cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGRA)
+
+    def cv2pil(self, cv_image):
+        pil_image = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+        return pil_image
 
     def add_images(self, file_name):
         json_dict = json.load(open('assets/' + file_name + '.json'))

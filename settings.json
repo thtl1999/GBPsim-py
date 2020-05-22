@@ -12,7 +12,7 @@
   "NOTE_SCALE": 1.5,
   "NOTE_WIDTH": 304,
   "BG_LINE_HEIGHT": 610,
-  "BAR_SCALE": 0.75,
+  "BAR_SCALE": 0.6,
   "FLICK_FRAMES": 20,
   "NOTE_SKIN_ID": "0",
   "LANE_SKIN_ID": "0",
@@ -37,7 +37,7 @@
 
   "SOUND_DELAY": 0,
 
-  "BACKGROUND_VIDEO": false,
+  "BACKGROUND_VIDEO": true,
 
   "BAR_EDGE_COLOR": [75, 226, 111, 151],
   "BAR_CENTER_COLOR": [76, 228, 112, 77],

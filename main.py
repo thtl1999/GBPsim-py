@@ -20,6 +20,7 @@ def import_settings():
 
     return settings
 
+
 def init_program():
     if os.path.isdir('video/frag'):
         shutil.rmtree('video/frag')
@@ -97,7 +98,7 @@ if __name__=='__main__':
     3-digit number is required only for bgm sound file name
     which can find in song metadata
     """
-    song_id = '128'
+    song_id = '31'
 
     metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
 
@@ -118,9 +119,8 @@ if __name__=='__main__':
 
     """
     TODO
-    
+    background video
     bar line draw to quadrangle (using polygon)
-    combo
     particles
     
     """
