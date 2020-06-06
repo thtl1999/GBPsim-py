@@ -90,8 +90,36 @@ def merge_video(constants):
     end_time = time.time()
     print('Merge processing time:', end_time - start_time)
 
+
+def make_process(song_id, difficulty):
+    settings = import_settings()
+    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
+    constants = frame.Constants(settings, metadata, difficulty, song_id)
+
+    init_program()
+    make_video(constants)
+    make_sound(constants)
+    merge_video(constants)
+
+
 def manual_mode():
-    network_class = network.NetworkClass
+    network_class = network.NetworkClass()
+
+    print('Please input song id')
+    song_id = input()
+    if song_id not in network_class.song_list:
+        print('Wrong song id')
+        exit(2)
+    print('Choose song difficulty')
+    print(network_class.song_list[song_id]['difficulty'])
+    difficulty = input()
+    if difficulty not in network_class.song_list[song_id]['difficulty']:
+        print('Wrong difficulty')
+        exit(3)
+
+    song = [network_class.create_song_info(song_id, difficulty)]
+    network_class.download_song_data(song)
+    make_process(song_id, difficulty)
 
 
 def observer_mode():
@@ -119,33 +147,7 @@ if __name__=='__main__':
         observer_mode()
     else:
         print('Wrong input')
-        exit(0)
-
-
-
-
-
-    # song_id = '187'
-    #
-    # metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
-    #
-    # music = AudioSegment.from_mp3('bgm/' + metadata['bgmId'] + ".mp3")
-    #
-    # difficulty_id = '3'
-    #
-    # constants = frame.Constants(settings, metadata, difficulty_id, song_id)
-    #
-    # init_program()
-
-
-
-    # make_video(constants)
-    #
-    # make_sound(constants)
-    #
-    # merge_video(constants)
-
-
+        exit(1)
 
 
     """

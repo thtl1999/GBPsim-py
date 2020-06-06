@@ -19,6 +19,7 @@ class NetworkClass:
 
         try:
             r = requests.get(url)
+            print('File downloaded', url)
             return r.content
         except:
             print('Download error', url, 'retry', retry)
@@ -76,6 +77,7 @@ class NetworkClass:
         f = open(path, 'wb')
         f.write(data)
         f.close()
+        print('File saved', path)
 
     def download_song_info(self, song_id):
         url = 'https://bestdori.com/api/songs/' + song_id + '.json'
@@ -83,14 +85,14 @@ class NetworkClass:
         self.save_raw_data(data, 'metadata/' + song_id + '.json')
 
     def download_song_jacket(self, song_id):
-        song_info = json.load(open('metadata/' + song_id + '.json'))
+        song_info = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
         jacket_name = song_info['jacketImage'][0]
         url = 'https://res.bandori.ga/assets/musicjacket/' + jacket_name + '_rip/jacket.png'
         data = self.download_file(url)
         self.save_raw_data(data, 'jacket/' + song_id + '.png')
 
     def download_song_music(self, song_id):
-        song_info = json.load(open('metadata/' + song_id + '.json'))
+        song_info = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
         music_name = song_info['bgmId']
         url = 'https://bestdori.com/assets/jp/sound/' + music_name + '_rip/' + music_name + '.mp3'
         data = self.download_file(url)
@@ -112,8 +114,8 @@ class NetworkClass:
 
     def download_song_data(self, song_list):
         for song in song_list:
-            song_id = song_list[song]['song_id']
-            difficulty = song_list[song]['difficulty']
+            song_id = song['song_id']
+            difficulty = song['difficulty']
             self.download_song_info(song_id)
             self.download_song_jacket(song_id)
             self.download_song_music(song_id)

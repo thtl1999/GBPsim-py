@@ -128,10 +128,16 @@ class VideoFrameMaker:
 
     def paste_center(self, base, x, y, img):
         w, h = img.size
-        base.paste(img, (int(x - w / 2), int(y - h / 2)), img)
+        if img.mode == 'RGBA':
+            base.paste(img, (int(x - w / 2), int(y - h / 2)), img)
+        else:
+            base.paste(img, (int(x - w / 2), int(y - h / 2)))
 
     def paste_abs(self, base, x, y, img):
-        base.paste(img, (int(x), int(y)), img)
+        if img.mode == 'RGBA':
+            base.paste(img, (int(x), int(y)), img)
+        else:
+            base.paste(img, (int(x), int(y)))
 
     def draw_combo(self, bg, combo):
         x, y, anim, combo_value = combo.get_pos()

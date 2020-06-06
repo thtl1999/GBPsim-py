@@ -357,7 +357,7 @@ class Note:
                 bx = self.npos.x[self.cur_anim][self.lane] + distance
 
                 self.cur_anim = cur_anim_backup
-                self.cur_anim_ext - cur_anim_ext_backup
+                self.cur_anim_ext = cur_anim_ext_backup
                 return tx, ty, bx, by, ts, bs
 
             elif self.type == 'Sim':
