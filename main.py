@@ -98,7 +98,7 @@ if __name__=='__main__':
     3-digit number is required only for bgm sound file name
     which can find in song metadata
     """
-    song_id = '31'
+    song_id = '128'
 
     metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
 

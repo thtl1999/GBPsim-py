@@ -336,6 +336,8 @@ class Note:
         if self.is_note():
             if self.type == 'Bar':
                 distance = 0
+                cur_anim_backup = self.cur_anim
+                cur_anim_ext_backup = self.cur_anim_ext
 
                 # correction for note position
                 if self.cur_anim > self.c.LANE_FRAME_LENGTH:
@@ -353,6 +355,9 @@ class Note:
                 ts = self.npos.r[self.cur_anim_ext]
                 bs = self.npos.r[self.cur_anim]
                 bx = self.npos.x[self.cur_anim][self.lane] + distance
+
+                self.cur_anim = cur_anim_backup
+                self.cur_anim_ext - cur_anim_ext_backup
                 return tx, ty, bx, by, ts, bs
 
             elif self.type == 'Sim':

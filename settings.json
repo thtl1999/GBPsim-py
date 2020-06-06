@@ -31,13 +31,13 @@
 
   "OPENCV_CODEC": "DIVX",
   "OPENCV_VIDEO_EXT": "avi",
-  "FFMPEG_CODEC": "mpeg4",
+  "FFMPEG_CODEC": "libx264",
   "OUTPUT_BITRATE": "9000k",
   "OUTPUT_EXT": "avi",
 
-  "SOUND_DELAY": 0,
+  "SOUND_DELAY": 0.1,
 
-  "BACKGROUND_VIDEO": true,
+  "BACKGROUND_VIDEO": false,
 
   "BAR_EDGE_COLOR": [75, 226, 111, 151],
   "BAR_CENTER_COLOR": [76, 228, 112, 77],
