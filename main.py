@@ -10,6 +10,7 @@ import frame
 import video
 import sound
 import merge
+import network
 
 
 def import_settings():
@@ -98,23 +99,34 @@ if __name__=='__main__':
     3-digit number is required only for bgm sound file name
     which can find in song metadata
     """
-    song_id = '128'
 
-    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
 
-    music = AudioSegment.from_mp3('bgm/' + metadata['bgmId'] + ".mp3")
+    data_checker = network.dataChecker()
+    # data_checker.get_song_list()
+    data_checker.get_added_song_list()
 
-    difficulty_id = '3'
 
-    constants = frame.Constants(settings, metadata, difficulty_id, song_id)
+    # song_id = '187'
+    #
+    # metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
+    #
+    # music = AudioSegment.from_mp3('bgm/' + metadata['bgmId'] + ".mp3")
+    #
+    # difficulty_id = '3'
+    #
+    # constants = frame.Constants(settings, metadata, difficulty_id, song_id)
+    #
+    # init_program()
 
-    init_program()
 
-    make_video(constants)
 
-    make_sound(constants)
+    # make_video(constants)
+    #
+    # make_sound(constants)
+    #
+    # merge_video(constants)
 
-    merge_video(constants)
+
 
 
     """
