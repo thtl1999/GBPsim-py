@@ -2,7 +2,7 @@ import json
 import time
 import requests
 
-class dataChecker:
+class NetworkClass:
     def __init__(self):
         self.retry_limit = 10
         self.retry_time_short = 30
@@ -72,17 +72,43 @@ class dataChecker:
         self.song_list = new_song_list
         return added_song_list
 
+    def save_raw_data(self, data, path):
+        f = open(path, 'wb')
+        f.write(data)
+        f.close()
+
     def download_song_info(self, song_id):
-        pass
+        url = 'https://bestdori.com/api/songs/' + song_id + '.json'
+        data = self.download_file(url)
+        self.save_raw_data(data, 'metadata/' + song_id + '.json')
 
     def download_song_jacket(self, song_id):
-        pass
+        song_info = json.load(open('metadata/' + song_id + '.json'))
+        jacket_name = song_info['jacketImage'][0]
+        url = 'https://res.bandori.ga/assets/musicjacket/' + jacket_name + '_rip/jacket.png'
+        data = self.download_file(url)
+        self.save_raw_data(data, 'jacket/' + song_id + '.png')
 
     def download_song_music(self, song_id):
-        pass
+        song_info = json.load(open('metadata/' + song_id + '.json'))
+        music_name = song_info['bgmId']
+        url = 'https://bestdori.com/assets/jp/sound/' + music_name + '_rip/' + music_name + '.mp3'
+        data = self.download_file(url)
+        self.save_raw_data(data, 'bgm/' + music_name + '.mp3')
 
     def download_song_chart(self, song_id, difficulty):
-        pass
+        diff_table = {
+            '0': 'easy',
+            '1': 'normal',
+            '2': 'hard',
+            '3': 'expert',
+            '4': 'special'
+        }
+
+        score_name = song_id + '.' + diff_table[difficulty] + '.json'
+        url = 'https://bestdori.com/api/songs/chart/graphics/simulator/' + score_name
+        data = self.download_file(url)
+        self.save_raw_data(data, 'score/' + score_name)
 
     def download_song_data(self, song_list):
         for song in song_list:

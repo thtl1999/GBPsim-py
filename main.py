@@ -90,6 +90,13 @@ def merge_video(constants):
     end_time = time.time()
     print('Merge processing time:', end_time - start_time)
 
+def manual_mode():
+    network_class = network.NetworkClass
+
+
+def observer_mode():
+    pass
+
 
 if __name__=='__main__':
     settings = import_settings()
@@ -100,10 +107,22 @@ if __name__=='__main__':
     which can find in song metadata
     """
 
+    print('Welcome! This is GBP simulator python')
+    print('1. Manual mode')
+    print('2. Observer mode')
 
-    data_checker = network.dataChecker()
-    # data_checker.get_song_list()
-    data_checker.get_added_song_list()
+    selection = input()
+
+    if selection == '1':
+        manual_mode()
+    elif selection == '2':
+        observer_mode()
+    else:
+        print('Wrong input')
+        exit(0)
+
+
+
 
 
     # song_id = '187'
@@ -131,7 +150,6 @@ if __name__=='__main__':
 
     """
     TODO
-    background video
     bar line draw to quadrangle (using polygon)
     particles
     

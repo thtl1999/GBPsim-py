@@ -45,3 +45,5 @@ https://bestdori.com/api/songs/31.json
 https://bestdori.com/assets/en/musicjacket/187_firebird_rip/jacket.png
 https://bestdori.com/assets/jp/sound/bgm187_rip/bgm187.mp3
 https://bestdori.com/api/songs/chart/graphics/simulator/187.expert.json
+
+https://res.bandori.ga/assets/musicjacket/[jacket name]_rip/jacket.png

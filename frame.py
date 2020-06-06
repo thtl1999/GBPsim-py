@@ -223,7 +223,7 @@ class Constants:
         self.LANE_SKIN_ID = settings['LANE_SKIN_ID']
         self.NOTE_SOUND_ID = settings['NOTE_SOUND_ID']
 
-        self.SONG_JACKET = 'jacket/' + self.SONG_ID + '/jacket.png'
+        self.SONG_JACKET = 'jacket/' + self.SONG_ID + '.png'
         self.JACKET_SCALE = settings['JACKET_SCALE']
         self.JACKET_POSITION = settings['JACKET_POSITION']
 

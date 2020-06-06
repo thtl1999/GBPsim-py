@@ -32,6 +32,6 @@ class Merge_class:
         final_video = mp.concatenate_videoclips(video_list)
         codec = self.c.FFMPEG_CODEC
         bitrate = self.c.OUTPUT_BITRATE
-        final_video_name = 'video/' + self.c.SONG_ID + '.' + self.c.OUTPUT_EXT
+        final_video_name = 'video/' + self.c.VIDEO_NAME
         final_video.write_videofile(final_video_name, audio=final_sound_name, codec=codec, bitrate=bitrate)
 
