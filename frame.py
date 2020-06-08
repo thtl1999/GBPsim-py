@@ -228,7 +228,12 @@ class Constants:
         self.JACKET_POSITION = settings['JACKET_POSITION']
 
         self.FONT_SIZE = settings['FONT_SIZE']
+        self.FONT_NAME = settings['FONT_NAME']
         self.SONG_NAME_POSITION = settings['SONG_NAME_POSITION']
+        self.SONG_INFO_POSITION = settings['SONG_INFO_POSITION']
+        self.BPM_POSITION = settings['BPM_POSITION']
+        self.CHIBI_POSITION = settings['CHIBI_POSITION']
+        self.CHIBI_SCALE = settings['CHIBI_SCALE']
 
         self.COMBO_SCALE_A = settings['COMBO_SCALE_A']
         self.COMBO_SCALE_B = settings['COMBO_SCALE_B']

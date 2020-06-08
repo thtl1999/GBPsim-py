@@ -152,7 +152,10 @@ if __name__=='__main__':
 
     """
     TODO
-    bar line draw to quadrangle (using polygon)
+    youtube api
+    chibi sd chara
+    bpm
+    level
     particles
     
     """

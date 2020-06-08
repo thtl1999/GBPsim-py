@@ -1,0 +1,5 @@
+put chibi(sd) images here
+image name start with 0
+0.png
+1.png
+...

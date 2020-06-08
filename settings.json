@@ -24,8 +24,19 @@
 
   "JACKET_SCALE" : 1,
   "JACKET_POSITION": [260,300],
+  "FONT_NAME": "NotoSansJP-Bold.otf",
   "FONT_SIZE": 50,
-  "SONG_NAME_POSITION": [60,30],
+  "SONG_NAME_POSITION": [60,25],
+  "SONG_INFO_POSITION": [0,0],
+  "BPM_POSITION": [0,0],
+  "CHIBI_SCALE": 1,
+  "CHIBI_POSITION": [
+    [0,0],
+    [0,0],
+    [0,0],
+    [0,0],
+    [0,0]
+  ],
 
   "THREADS": 0,
 

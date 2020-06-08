@@ -63,7 +63,7 @@ class VideoFrameMaker:
         self.game_play_line = self.img_resize(self.images['game_play_line.png'], self.c.LANE_SCALE)
         self.bg_line_rhythm = self.img_resize(self.images['bg_line_rhythm.png'], self.c.LANE_SCALE)
         self.jacket = self.img_resize(Image.open(self.c.SONG_JACKET), self.c.JACKET_SCALE)
-        self.font = ImageFont.truetype('NotoSansJP-Bold.otf', self.c.FONT_SIZE)
+        self.font = ImageFont.truetype(self.c.FONT_NAME, self.c.FONT_SIZE)
         self.bg = self.make_static_bg()
 
         for frame in self.note_frames:
