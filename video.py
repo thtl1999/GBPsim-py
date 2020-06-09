@@ -35,7 +35,6 @@ class VideoFrameMaker:
             self.paste_center(bg, chibi_position[0], chibi_position[1], self.chibi_images[i])
 
     def paste_bg_components(self, bg, bpm):
-        self.paste_bg_chibi(bg)
         self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y, self.game_play_line)
         self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y - self.bg_line_rhythm.height / 2, self.bg_line_rhythm)
         self.paste_center(bg, self.c.JACKET_POSITION[0], self.c.JACKET_POSITION[1], self.jacket)
@@ -46,6 +45,7 @@ class VideoFrameMaker:
 
     def make_static_bg(self, bpm):
         bg = Image.open('assets/bgs.png').convert('RGB').resize((self.c.WIDTH, self.c.HEIGHT))
+        self.paste_bg_chibi(bg)
         self.paste_bg_components(bg, bpm)
         return bg
 
@@ -88,6 +88,7 @@ class VideoFrameMaker:
             else:
                 # bg = self.bg.copy()
                 bg = self.make_static_bg(frame['bpm'])
+
 
             # draw notes
             for note in frame['note']:
