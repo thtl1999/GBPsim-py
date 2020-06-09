@@ -23,19 +23,33 @@ class VideoFrameMaker:
 
         self.empty_image = Image.new("RGBA", (1, 1))
 
-    def paste_bg_components(self, bg):
+    def load_chibi(self):
+        chibi_images = list()
+        for i in range(len(self.c.CHIBI_POSITION)):
+            chibi = self.img_resize(Image.open('chibi/' + str(i) + '.png'), self.c.CHIBI_SCALE)
+            chibi_images.append(chibi)
+        return chibi_images
+
+    def paste_bg_chibi(self, bg):
+        for i, chibi_position in enumerate(self.c.CHIBI_POSITION):
+            self.paste_center(bg, chibi_position[0], chibi_position[1], self.chibi_images[i])
+
+    def paste_bg_components(self, bg, bpm):
+        self.paste_bg_chibi(bg)
         self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y, self.game_play_line)
         self.paste_center(bg, self.c.WIDTH / 2, self.c.BOTTOM_Y - self.bg_line_rhythm.height / 2, self.bg_line_rhythm)
         self.paste_center(bg, self.c.JACKET_POSITION[0], self.c.JACKET_POSITION[1], self.jacket)
         draw = ImageDraw.Draw(bg)
         draw.text(tuple(self.c.SONG_NAME_POSITION), self.c.SONG_NAME, align="left", font=self.font)
+        draw.text(tuple(self.c.SONG_INFO_POSITION), self.c.SONG_INFO, align="left", font=self.font)
+        draw.text(tuple(self.c.BPM_POSITION), 'BPM: ' + str(bpm), align="left", font=self.font)
 
-    def make_static_bg(self):
+    def make_static_bg(self, bpm):
         bg = Image.open('assets/bgs.png').convert('RGB').resize((self.c.WIDTH, self.c.HEIGHT))
-        self.paste_bg_components(bg)
+        self.paste_bg_components(bg, bpm)
         return bg
 
-    def make_video_bg(self, frame_seq):
+    def make_video_bg(self, frame_seq, bpm):
         video = cv2.VideoCapture('mv/' + self.c.SONG_ID + '.mp4')
         video_fps = video.get(cv2.CAP_PROP_FPS)
         video_frame_seq = int(frame_seq/self.c.FPS * video_fps)
@@ -48,7 +62,7 @@ class VideoFrameMaker:
 
         bg = self.cv2pil(cv_image)
         bg = bg.resize((self.c.WIDTH, self.c.HEIGHT))
-        self.paste_bg_components(bg)
+        self.paste_bg_components(bg, bpm)
 
         return bg
 
@@ -60,18 +74,20 @@ class VideoFrameMaker:
         video_name = 'video/frag/' + str(self.thread_id) + '.' + self.c.OPENCV_VIDEO_EXT
         video = cv2.VideoWriter(video_name, fourcc, self.c.FPS, video_size)
 
+        self.chibi_images = self.load_chibi()
         self.game_play_line = self.img_resize(self.images['game_play_line.png'], self.c.LANE_SCALE)
         self.bg_line_rhythm = self.img_resize(self.images['bg_line_rhythm.png'], self.c.LANE_SCALE)
         self.jacket = self.img_resize(Image.open(self.c.SONG_JACKET), self.c.JACKET_SCALE)
         self.font = ImageFont.truetype(self.c.FONT_NAME, self.c.FONT_SIZE)
-        self.bg = self.make_static_bg()
+        self.bg = self.make_static_bg(0)
 
         for frame in self.note_frames:
             # make background
             if self.c.BACKGROUND_VIDEO:
-                bg = self.make_video_bg(frame['seq'])
+                bg = self.make_video_bg(frame['seq'], frame['bpm'])
             else:
-                bg = self.bg.copy()
+                # bg = self.bg.copy()
+                bg = self.make_static_bg(frame['bpm'])
 
             # draw notes
             for note in frame['note']:

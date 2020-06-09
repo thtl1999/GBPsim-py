@@ -27,15 +27,15 @@
   "FONT_NAME": "NotoSansJP-Bold.otf",
   "FONT_SIZE": 50,
   "SONG_NAME_POSITION": [60,25],
-  "SONG_INFO_POSITION": [0,0],
-  "BPM_POSITION": [0,0],
+  "SONG_INFO_POSITION": [1430,25],
+  "BPM_POSITION": [1430,100],
   "CHIBI_SCALE": 1,
   "CHIBI_POSITION": [
-    [0,0],
-    [0,0],
-    [0,0],
-    [0,0],
-    [0,0]
+    [960,380],
+    [840,320],
+    [1080,320],
+    [720,380],
+    [1200,380]
   ],
 
   "THREADS": 0,

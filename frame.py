@@ -132,7 +132,17 @@ class FrameMaker:
         return self.time_to_frame(note_time)
 
     def get_bpm(self, seq):
-        return 0
+        current_time = seq / self.c.FPS
+        bpm = None
+        for section in self.c.BPMS:
+            if section['start'] < current_time < section['end']:
+                bpm = section['bpm']
+
+        # if not found bpm (song end)
+        if bpm is None:
+            bpm = self.c.BPMS[-1]['bpm']
+
+        return bpm
 
     def add_single_effect(self, frames, start_frame):
         pass
@@ -198,6 +208,9 @@ class Constants:
         self.DIFFICULTY = diff_table[difficulty]
         self.DIFFICULTY_ID = difficulty
         self.SONG_ID = song_id
+        song_difficulty_text = str(self.DIFFICULTY).upper()
+        song_difficulty_rate = str(metadata['difficulty'][self.DIFFICULTY_ID]['playLevel'])
+        self.SONG_INFO = song_difficulty_text + ' ' + song_difficulty_rate
 
         self.BPMS = metadata['bpm'][self.DIFFICULTY_ID]
         self.SONG_LENGTH = metadata['length']
