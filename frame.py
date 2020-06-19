@@ -268,6 +268,7 @@ class Constants:
 
         self.THREADS = settings['THREADS']
         self.BACKGROUND_VIDEO = settings['BACKGROUND_VIDEO']
+        self.BACKGROUND_VIDEO_DELAY = settings['BACKGROUND_VIDEO_DELAY']
         self.SOUND_DELAY = settings['SOUND_DELAY']
 
         self.LANE_FRAME_LENGTH = None

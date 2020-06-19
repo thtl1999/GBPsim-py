@@ -52,10 +52,13 @@ class VideoFrameMaker:
     def make_video_bg(self, frame_seq, bpm):
         video = cv2.VideoCapture('mv/' + self.c.SONG_ID + '.mp4')
         video_fps = video.get(cv2.CAP_PROP_FPS)
-        video_frame_seq = int(frame_seq/self.c.FPS * video_fps)
+        video_frame_seq = int((frame_seq/self.c.FPS - self.c.BACKGROUND_VIDEO_DELAY) * video_fps)
 
-        if not video_frame_seq < video.get(cv2.CAP_PROP_FRAME_COUNT):
+        if video_frame_seq >= video.get(cv2.CAP_PROP_FRAME_COUNT):
             video_frame_seq = video.get(cv2.CAP_PROP_FRAME_COUNT) - 1
+
+        if video_frame_seq < 0:
+            video_frame_seq = 0
 
         video.set(cv2.CAP_PROP_POS_FRAMES, video_frame_seq)
         ret, cv_image = video.read()

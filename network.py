@@ -117,6 +117,6 @@ class NetworkClass:
             song_id = song['song_id']
             difficulty = song['difficulty']
             self.download_song_info(song_id)
-            self.download_song_jacket(song_id)
+            # self.download_song_jacket(song_id)
             self.download_song_music(song_id)
             self.download_song_chart(song_id, difficulty)
