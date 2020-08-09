@@ -95,6 +95,7 @@ def merge_video(constants):
     merge_class.merge()
 
     # delete middle files
+    time.sleep(2)
     shutil.rmtree('video/frag')
 
     end_time = time.time()
