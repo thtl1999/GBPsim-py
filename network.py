@@ -1,6 +1,7 @@
 import json
 import time
 import requests
+import math
 
 class NetworkClass:
     def __init__(self):
@@ -87,7 +88,13 @@ class NetworkClass:
     def download_song_jacket(self, song_id):
         song_info = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
         jacket_name = song_info['jacketImage'][0]
-        url = 'https://res.bandori.ga/assets/musicjacket/' + jacket_name + '_rip/jacket.png'
+        base_url = 'https://bestdori.com/assets/jp/musicjacket/musicjacket'
+        middle_url = '_rip/assets-star-forassetbundle-startapp-musicjacket-musicjacket'
+        end_url = '-jacket.png'
+        ceiled = str(math.ceil(int(song_id)/10) * 10)
+        # url = 'https://res.bandori.ga/assets/musicjacket/' + jacket_name + '_rip/jacket.png'
+        url = base_url + ceiled + middle_url + ceiled + '-' + jacket_name + end_url
+
         data = self.download_file(url)
         self.save_raw_data(data, 'jacket/' + song_id + '.png')
 
@@ -117,6 +124,6 @@ class NetworkClass:
             song_id = song['song_id']
             difficulty = song['difficulty']
             self.download_song_info(song_id)
-            # self.download_song_jacket(song_id)
+            self.download_song_jacket(song_id)
             self.download_song_music(song_id)
             self.download_song_chart(song_id, difficulty)

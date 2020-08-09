@@ -47,3 +47,9 @@ https://bestdori.com/assets/jp/sound/bgm187_rip/bgm187.mp3
 https://bestdori.com/api/songs/chart/graphics/simulator/187.expert.json
 
 https://res.bandori.ga/assets/musicjacket/[jacket name]_rip/jacket.png
+
+
+/assets/" + m[t] + "/musicjacket/musicjacket" + o + "_rip/assets-star-forassetbundle-startapp-musicjacket-musicjacket" + o + "-" + n + "-jacket.png
+https://bestdori.com/assets/jp/musicjacket/musicjacket260_rip/assets-star-forassetbundle-startapp-musicjacket-musicjacket260-259_change-jacket.png
+https://bestdori.com/assets/jp/musicjacket/musicjacket30_rip/assets-star-forassetbundle-startapp-musicjacket-musicjacket30-kirayume-jacket.png
+https://bestdori.com/assets/jp/musicjacket/musicjacket10_rip/assets-star-forassetbundle-startapp-musicjacket-musicjacket10-yes_bang_dream-jacket.png
