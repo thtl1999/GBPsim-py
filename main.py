@@ -3,6 +3,7 @@ import json
 import time
 import shutil
 import os
+import sys
 import numpy as np
 from pydub import AudioSegment
 import multiprocessing
@@ -156,6 +157,12 @@ def upload_test():
 
 if __name__=='__main__':
     settings = import_settings()
+
+    # argument to use with nohup
+    argument = sys.argv
+    if len(argument) > 1:
+        if argument[1] == '2':
+            observer_mode()
 
     """
     music_id is not 3-digit number.
