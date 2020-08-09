@@ -24,8 +24,8 @@ def upload_video(c):
     # setting status
     video.set_embeddable(True)
     video.set_license("youtube")
-    video.set_privacy_status("private")
-    video.set_public_stats_viewable(False)
+    video.set_privacy_status("public")
+    video.set_public_stats_viewable(True)
 
     # setting thumbnail
     #video.set_thumbnail_path("test_thumb.png")

@@ -122,20 +122,20 @@ def manual_mode():
     song = [network_class.create_song_info(song_id, difficulty)]
     network_class.download_song_data(song)
     constants = make_process(song_id, difficulty)
-
-    youtube.upload_video(constants)
+    # youtube.upload_video(constants)
 
 
 def observer_mode():
-    pass
+    network_class = network.NetworkClass()
+    while True:
+        if network_class.observe_change():
+            songs = network_class.get_added_song_list()
+            network_class.download_song_data(songs)
+            for song in songs:
+                constants = make_process(song['song_id'], song['difficulty'])
+                youtube.upload_video(constants)
 
-def test():
-    song_id = '284'
-    difficulty = '3'
-    settings = import_settings()
-    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
-    constants = frame.Constants(settings, metadata, difficulty, song_id)
-    youtube.upload_video(constants)
+
 
 
 if __name__=='__main__':
@@ -157,8 +157,6 @@ if __name__=='__main__':
         manual_mode()
     elif selection == '2':
         observer_mode()
-    elif selection == '3':
-        test()
     else:
         print('Wrong input')
         exit(1)

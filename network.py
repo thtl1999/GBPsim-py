@@ -8,7 +8,7 @@ class NetworkClass:
         self.retry_limit = 10
         self.retry_time_short = 30
         self.retry_time_long = 300
-        self.observe_time = 300
+        self.observe_time = 3000
         self.song_list = self.get_song_list()
 
     def download_file(self, url, retry=0):
@@ -36,7 +36,7 @@ class NetworkClass:
 
     def observe_change(self):
         new_song_list = self.get_song_list()
-        if self.get_song_list() == new_song_list:
+        if self.song_list == new_song_list:
             time.sleep(self.observe_time)
             return self.observe_change()
         else:
