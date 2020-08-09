@@ -136,7 +136,13 @@ def observer_mode():
                 youtube.upload_video(constants)
 
 
-
+def upload_test():
+    song_id = '284'
+    difficulty = '3'
+    settings = import_settings()
+    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
+    constants = frame.Constants(settings, metadata, difficulty, song_id)
+    youtube.upload_video(constants, True)
 
 if __name__=='__main__':
     settings = import_settings()
@@ -157,6 +163,8 @@ if __name__=='__main__':
         manual_mode()
     elif selection == '2':
         observer_mode()
+    elif selection == '3':
+        upload_test()
     else:
         print('Wrong input')
         exit(1)

@@ -2,7 +2,7 @@ from simple_youtube_api.Channel import Channel
 from simple_youtube_api.LocalVideo import LocalVideo
 
 
-def upload_video(c):
+def upload_video(c, test_flag=False):
 
     # loggin into the channel
     channel = Channel()
@@ -24,7 +24,12 @@ def upload_video(c):
     # setting status
     video.set_embeddable(True)
     video.set_license("youtube")
-    video.set_privacy_status("public")
+
+    if test_flag:
+        video.set_privacy_status("private")
+    else:
+        video.set_privacy_status("public")
+
     video.set_public_stats_viewable(True)
 
     # setting thumbnail
