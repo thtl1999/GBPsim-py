@@ -161,7 +161,7 @@ if __name__=='__main__':
     # argument to use with nohup
     argument = sys.argv
     if len(argument) > 1:
-        if argument[1] == '-2':
+        if argument[1] == 'auto':
             observer_mode()
 
     """

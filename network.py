@@ -2,6 +2,7 @@ import json
 import time
 import requests
 import math
+import datetime
 
 class NetworkClass:
     def __init__(self):
@@ -35,6 +36,8 @@ class NetworkClass:
         return song_list
 
     def observe_change(self):
+        print('Observe change')
+        print(datetime.datetime.now())
         new_song_list = self.get_song_list()
         if self.song_list == new_song_list:
             time.sleep(self.observe_time)
