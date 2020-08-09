@@ -36,6 +36,15 @@ def make_video(constants):
     print('Video process start with', constants.THREADS, 'processes')
     start_time = time.time()
 
+    print('Copy chibi image')
+    if constants.BAND_ID in ['1', '2', '3', '4', '5', '18', '21']:
+        band_id = constants.BAND_ID
+    else:
+        band_id = '1'
+    for chibi_id in range(5):
+        chibi_image = 'chibi/preset/' + band_id + '/' + str(chibi_id) + '.png'
+        shutil.copy2(chibi_image, 'chibi/')
+
     print('Parse score')
     frame_maker = frame.FrameMaker(constants)
     frame_list = frame_maker.make_frames()

@@ -247,6 +247,7 @@ class Constants:
         self.BPM_POSITION = settings['BPM_POSITION']
         self.CHIBI_POSITION = settings['CHIBI_POSITION']
         self.CHIBI_SCALE = settings['CHIBI_SCALE']
+        self.BAND_ID = str(metadata['bandId'])
 
         self.COMBO_SCALE_A = settings['COMBO_SCALE_A']
         self.COMBO_SCALE_B = settings['COMBO_SCALE_B']
