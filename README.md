@@ -15,7 +15,8 @@ BanG Dream! Girls Band Party!(バンドリ or ガルパ) video maker written in 
     Install pip3 packages
     
     ```bash
-    pip3 numpy pillow opencv-python pydub moviepy
+    pip3 install numpy pillow opencv-python pydub moviepy
+    pip3 install simple-youtube-api --user
     ```
     
     Run program

@@ -11,6 +11,7 @@ import video
 import sound
 import merge
 import network
+import youtube
 
 
 def import_settings():
@@ -100,6 +101,7 @@ def make_process(song_id, difficulty):
     make_video(constants)
     make_sound(constants)
     merge_video(constants)
+    return constants
 
 
 def manual_mode():
@@ -119,11 +121,21 @@ def manual_mode():
 
     song = [network_class.create_song_info(song_id, difficulty)]
     network_class.download_song_data(song)
-    make_process(song_id, difficulty)
+    constants = make_process(song_id, difficulty)
+
+    youtube.upload_video(constants)
 
 
 def observer_mode():
     pass
+
+def test():
+    song_id = '284'
+    difficulty = '3'
+    settings = import_settings()
+    metadata = json.load(open('metadata/' + song_id + '.json', encoding='utf-8'))
+    constants = frame.Constants(settings, metadata, difficulty, song_id)
+    youtube.upload_video(constants)
 
 
 if __name__=='__main__':
@@ -145,6 +157,8 @@ if __name__=='__main__':
         manual_mode()
     elif selection == '2':
         observer_mode()
+    elif selection == '3':
+        test()
     else:
         print('Wrong input')
         exit(1)
@@ -153,10 +167,6 @@ if __name__=='__main__':
     """
     TODO
     youtube api
-    chibi sd chara
-    bpm
-    level
     particles
-    
     """
 

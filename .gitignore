@@ -137,4 +137,5 @@ metadata/
 jacket/
 mv/
 chibi/
-api.json
+client_secret.json
+credentials.storage
