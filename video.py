@@ -121,6 +121,7 @@ class VideoFrameMaker:
             video.write(cv2_img)
 
         video.release()
+        del video
 
     def pil2cv(self, pil_image):
         numpy_image = np.array(pil_image)

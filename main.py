@@ -95,8 +95,10 @@ def merge_video(constants):
     merge_class = merge.Merge_class(constants)
     merge_class.merge()
 
+    # PermissionError handle
+    del merge_class
+
     # delete middle files
-    time.sleep(2)
     shutil.rmtree('video/frag')
 
     end_time = time.time()
@@ -133,7 +135,7 @@ def manual_mode():
     song = [network_class.create_song_info(song_id, difficulty)]
     network_class.download_song_data(song)
     constants = make_process(song_id, difficulty)
-    # youtube.upload_video(constants)
+    youtube.upload_video(constants, True)
 
 
 def observer_mode():

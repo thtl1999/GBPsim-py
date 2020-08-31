@@ -35,3 +35,9 @@ class Merge_class:
         final_video_name = 'video/' + self.c.VIDEO_NAME
         final_video.write_videofile(final_video_name, audio=final_sound_name, codec=codec, bitrate=bitrate)
 
+        # Prevent file lock
+        for video_clip in video_list:
+            del video_clip.reader
+            del video_clip
+        del final_video
+
