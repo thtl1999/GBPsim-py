@@ -29,6 +29,11 @@ BanG Dream! Girls Band Party!(バンドリ or ガルパ) video maker written in 
     ```
     nohup python3 main.py auto
     ```
+  
+    To check if nohup works
+    ```
+    ps -ef | grep python
+    ```
 
 * ### Windows
 
