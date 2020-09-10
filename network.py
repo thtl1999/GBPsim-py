@@ -36,14 +36,13 @@ class NetworkClass:
         return song_list
 
     def observe_change(self):
-        print('Observe change')
+        print('Observe if change exist')
         print(datetime.datetime.now())
         new_song_list = self.get_song_list()
         if self.song_list == new_song_list:
             time.sleep(self.observe_time)
             return self.observe_change()
         else:
-
             return True
 
     def create_song_info(self, song_id, difficulty):
@@ -73,8 +72,6 @@ class NetworkClass:
                         song = self.create_song_info(key, '4')
                         added_song_list.append(song)
 
-        # Update song list
-        self.song_list = new_song_list
         return added_song_list
 
     def save_raw_data(self, data, path):

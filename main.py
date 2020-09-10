@@ -141,12 +141,17 @@ def manual_mode():
 def observer_mode():
     network_class = network.NetworkClass()
     while True:
-        if network_class.observe_change():
-            songs = network_class.get_added_song_list()
-            network_class.download_song_data(songs)
-            for song in songs:
-                constants = make_process(song['song_id'], song['difficulty'])
-                youtube.upload_video(constants)
+        try:
+            if network_class.observe_change():
+                songs = network_class.get_added_song_list()
+                network_class.download_song_data(songs)
+                for song in songs:
+                    constants = make_process(song['song_id'], song['difficulty'])
+                    youtube.upload_video(constants)
+                # Update song list
+                network_class.song_list = network_class.get_song_list()
+        except:
+            print('error during observing')
 
 
 def upload_test():
