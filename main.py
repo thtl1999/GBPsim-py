@@ -140,6 +140,7 @@ def manual_mode():
 
 def observer_mode():
     network_class = network.NetworkClass()
+    error_count = 0
     while True:
         try:
             if network_class.observe_change():
@@ -150,8 +151,12 @@ def observer_mode():
                     youtube.upload_video(constants)
                 # Update song list
                 network_class.song_list = network_class.get_song_list()
+                error_count = 0
         except:
+            error_count += 1
             print('error during observing')
+            if error_count > 10:
+                return
 
 
 def upload_test():
