@@ -129,6 +129,13 @@ dmypy.json
 
 #my folder
 assets-backup/
+bgm/
+score/
+video/
+myvideo.mp4
+metadata/
+jacket/
+mv/
 chibi/
 client_secret.json
 credentials.storage
