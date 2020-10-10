@@ -152,9 +152,10 @@ def observer_mode():
                 # Update song list
                 network_class.song_list = network_class.get_song_list()
                 error_count = 0
-        except:
+        except Exception as e:
             error_count += 1
-            print('error during observing')
+            print('error during observing', e)
+            time.sleep(100)
             if error_count > 10:
                 return
 
