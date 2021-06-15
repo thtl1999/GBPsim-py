@@ -133,21 +133,8 @@ For width, start on lane and stretch width to own direction
 ```
 ## Frame information generator
 
-- All notes
-
-```json
-{
-  1: {
-    "lane":5
-  },
-  2: {
-    "lane": 2.5
-  }
-}
-```
-
 - Frame data
-```json
+```
 "frame": {
   "combo": 13,
   "combo_anim": 4,
@@ -155,21 +142,39 @@ For width, start on lane and stretch width to own direction
 }
 
 "notes": {
+  "id": 20,
   "x": 135,
   "y": 678,
   "lane": 3,
   "type": "single",
-  "connected": 345 or none
+          
+  /* optional */
+          
+  "connected": [345, 5] or none,  // for slide [note id, lane]
+  "direction": ['left', 2], // for directional [direction, width]
+  "animation": 21 // for flick and directional. animation sequence,
+  "feature": 'off' or 'hidden'  // for single off and hidden tick
 }
 ```
 
 - Note type
-    - single
-    - single off
+    - single / single off
     - flick
     - directional
-    - directional last
     - long
+    - tick / hidden
+    - bar
+
+- How to generate frame info
+  - Read score file
+    1. Record id to notes
+    2. Append note to frames where the note appears on
+    3. Add count to frame where the note finished
+  
+  - Read Frame
+    1. Calculate combo with count
+    2. If two notes start with the frame, add bar note
+    3. Sort notes depending on drawing depth
 
 ## Image generator
 
