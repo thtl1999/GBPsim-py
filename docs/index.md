@@ -54,8 +54,10 @@ Actual timing = beat / BPM * 60
 }
 ```
 
-- Start music
+- System
 
+Do Starting music or fever control
+  
 Can assume music starts at beat 0
 ```json
 {
@@ -68,7 +70,7 @@ Can assume music starts at beat 0
 
 Inlcudes flick. May change color if not integer beat
 
-```json
+```
 {
   "type":"Single",
   "lane":1,
@@ -94,7 +96,7 @@ Inlcudes flick. May change color if not integer beat
 - Slide
 
 If hidden, the note exist only for visual effect. First and last connections become long start and end
-```json
+```
 {
   "type":"Slide",
   "connections":[]
@@ -138,7 +140,10 @@ For width, start on lane and stretch width to own direction
 "frame": {
   "combo": 13,
   "combo_anim": 4,
-  "notes": []
+  "notes": [],
+  "sequence": 123,
+  "bpm": 135,
+  effects: []
 }
 
 "notes": {
@@ -166,9 +171,12 @@ For width, start on lane and stretch width to own direction
     - bar
 
 - How to generate frame info
-  - Read score file
+  - Read score file. Separate Slide connections to each note
     1. Record id to notes
-    2. Append note to frames where the note appears on
+    2. Sort by beat sequence
+  - Read sorted notes
+    1. Calculate timing(sec) with BPM
+    2. Append note(id and lane) to frames where the note appears on
     3. Add count to frame where the note finished
   
   - Read Frame
